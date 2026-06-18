@@ -78,6 +78,11 @@ Odtwarzany z produkcyjnego oryginału na **galeon.yachts** (Webflow) — przy w�
 - Responsive breakpoint: `max-width: 860px` (kafelki stackują się pionowo)
 - Footer: ciemne tło (`--color-navy`), logo (białe przez `filter: brightness(0) invert(1)`), tagline display, linki do modeli — paleta i fonty spójne z resztą strony
 
+## Repozytorium i Hosting (GitHub)
+- **Repozytorium:** publiczne na GitHubie pod adresem `https://github.com/kornelg3/gal-globus2`
+- **Plik `.gitignore`:** ignoruje niepotrzebne, ciężkie foldery i pliki robocze (`RAW/`, `OLD RESOURCES/`, `od V/` oraz foldery edytorów `.claude/`, `.gemini/` itp.)
+- **Hosting:** strona jest publikowana na żywo przez **GitHub Pages** bezpośrednio z gałęzi `main` (katalog główny `/`) pod adresem `https://kornelg3.github.io/gal-globus2/`
+
 ## Styl pracy z użytkownikiem
 - Użytkownik zna podstawy HTML i CSS
 - **Podawaj jedną większą zmianę na raz** — nie grupuj wielu instrukcji w jednej odpowiedzi, chyba że to proste kroki
@@ -87,5 +92,4 @@ Odtwarzany z produkcyjnego oryginału na **galeon.yachts** (Webflow) — przy w�
 - **Styl:** zwięźle i konkretnie, bez zbędnych wstępów i podsumowań ("Świetne pytanie!", "Mam nadzieję, że pomogło!").
 
 ## PODSUMOWANIE
-
-Na końcu rozmowy, gdy użytkownik poprosi o podsumowanie czy zaktualizowanie, wygeneruj zaktualizowaną wersję  instrukcji w Markdown w pliku głównym z instrukcją projektu AGENTS.md lub dodatkowych jeśli powstały. Plik AGENTS.md powienien zawierać maks. 200 linijek i kluczowe informacje. Uwzględnij najnowszy stan projektu, status zadań i zmiany techniczne. **Tnij rzeczy zbędne** (zamknięte etapy, nieaktualne quirki, powtórzenia) — plik nie ma rosnąć w nieskończoność. Nie wklejaj treści w czat, tylko krótkie podsumowanie co zmieniłeś w pliku.
+Projekt został pomyślnie zintegrowany z Git/GitHub i opublikowany na GitHub Pages. Wszelkie kolejne zmiany w kodzie po zatwierdzeniu (commit) i wysłaniu (push) będą automatycznie aktualizować działającą wersję strony produkcyjnej w ciągu 1-2 minut.
