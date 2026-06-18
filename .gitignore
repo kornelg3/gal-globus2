@@ -1,0 +1,10 @@
+# Foldery tymczasowe i konfiguracyjne edytorów
+.claude/
+.gemini/
+.vscode/
+.idea/
+
+# Kopia zapasowa i surowe pliki (duże rozmiary)
+RAW/
+OLD RESOURCES/
+od V/

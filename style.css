@@ -1,0 +1,249 @@
+/* ============================================================
+   ZMIENNE — kolory wyciągnięte z oryginału galeon.yachts
+   ============================================================ */
+:root {
+  --bg-white: #fbfbfb;       /* tło jasne */
+  --bg-dark:  #122938;       /* ciemny granat (gradient) */
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg-white);
+}
+
+/* ============================================================
+   SEKCJE FILLER — tylko po to, żeby było co scrollować w demie.
+   W realnym projekcie zastąpisz je swoją treścią strony.
+   ============================================================ */
+.filler {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-family: system-ui, sans-serif;
+  color: var(--bg-dark);
+}
+
+/* ============================================================
+   KOMPONENT SCROLL-VIDEO
+   Reguły 1:1 z oryginału (uproszczone, desktop-only).
+   ============================================================ */
+
+/* .track — wysoki kontener = "droga" scrolla.
+   height: 300vh oznacza, że animacja rozciąga się na 3 ekrany scrolla.
+   Chcesz wolniejszą/dłuższą animację? Zwiększ tę wartość (np. 400vh). */
+.track {
+  position: relative;
+  /* 400vh: animacja zajmuje pierwsze ~78% (≈3 ekrany, jak dotąd),
+     a ostatnie ~22% to "przytrzymanie" ostatniej klatki (HOLD_END w JS). */
+  height: 400vh;
+  margin-left: auto;
+  margin-right: auto;
+  background-color: var(--bg-white);
+  z-index: 1;
+}
+
+/* .canvas_wrapper — przyklejony do ekranu (sticky) na czas przewijania .track.
+   To on tworzy efekt "jacht obraca się w miejscu, a strona płynie pod nim". */
+.canvas_wrapper {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-flow: column;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+/* .canvas — element, na którym rysowane są klatki wideo.
+   object-fit: cover + inset:0 => wypełnia cały wrapper bez deformacji.
+   UWAGA: realny rozmiar w pikselach ustawiamy w JS (retina/devicePixelRatio). */
+.canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: 1;
+}
+
+/* .canvas_shade — statyczny gradient przyciemniający kadr podczas
+   pierwszego wideo: mocniejszy na dole, jaśniejszy ku górze. Średnia moc. */
+.canvas_shade {
+  position: absolute;
+  inset: 0;
+  z-index: 1;            /* nad canvasem, pod mapą i gradientem dolnym */
+  pointer-events: none;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0.28) 35%,
+    rgba(0, 0, 0, 0.10) 70%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  opacity: 1;
+  transition: opacity 0.6s ease;
+}
+/* Po pojawieniu się mapy chowamy przyciemnienie. */
+.canvas_shade.is-hidden { opacity: 0; }
+
+/* .map-image — obrazek mapy z pinami nakładany na canvas po 2. animacji.
+   Pozycjonowany i skalowany identycznie jak canvas (cover), żeby pokrył się
+   z ostatnią klatką. Pojawia się płynnie (crossfade) przez opacity. */
+.map-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  z-index: 1;            /* nad canvasem, pod gradientem (z-index:2) */
+  opacity: 0;
+  pointer-events: none;  /* klik łapie canvas pod spodem */
+  transition: opacity 1.2s ease;
+}
+.map-image.is-visible { opacity: 1; }
+
+/* .canvas_gradient — dekoracyjny gradient na dole kadru (opcjonalny). */
+.canvas_gradient {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 8rem;
+  background-image: linear-gradient(0deg, var(--bg-dark), #182e3900);
+  z-index: 2;
+}
+
+/* .canvas_nav — pasek nawigacji segmentów (tu pusty, do rozbudowy). */
+.canvas_nav {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ============================================================
+   PANEL DEALERÓW — wysuwany z prawej po kliknięciu w mapę z pinami
+   ============================================================ */
+.dealer-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 30;
+  width: 30rem;
+  max-width: 92vw;
+  height: 100vh;
+  background: var(--bg-dark);
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow: -1.5rem 0 3rem -1rem rgba(0, 0, 0, 0.45);
+  font-family: "Galanogrotesque", "Helvetica Neue", Arial, sans-serif;
+  /* schowany za prawą krawędzią; pokazujemy klasą .is-open */
+  transform: translateX(100%);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.dealer-panel.is-open {
+  transform: translateX(0);
+}
+
+.dealer-panel__close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  z-index: 2;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+.dealer-panel__close:hover { background: rgba(255, 255, 255, 0.18); }
+
+/* obszar przewijany */
+.dealer-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4.5rem 2.5rem 3rem;
+  -webkit-overflow-scrolling: touch;
+}
+.dealer-panel__body::-webkit-scrollbar { width: 6px; }
+.dealer-panel__body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+
+/* nagłówek kraju (np. "USA") */
+.dealer-country {
+  font-family: "Michroma", "Arial Narrow", Arial, sans-serif;
+  font-weight: 400;
+  font-size: 1.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0 0 1.75rem;
+}
+.dealer-country:not(:first-child) {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* pojedynczy dealer: ikona pinezki + treść */
+.dealer-item {
+  display: flex;
+  gap: 0.85rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+.dealer-item:last-child { border-bottom: 0; }
+
+.dealer-item__pin {
+  flex-shrink: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1.6;
+}
+
+.dealer-item__name {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #fff;
+  margin: 0 0 0.25rem;
+}
+
+.dealer-item__addr {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+
+/* mapa staje się klikalna dopiero, gdy pokażemy obrazek z pinami */
+.canvas.is-clickable { cursor: pointer; }
+
+@media (max-width: 860px) {
+  .dealer-panel { width: 100vw; max-width: 100vw; }
+  .dealer-panel__body { padding: 4.5rem 1.75rem 2.5rem; }
+}
