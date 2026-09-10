@@ -1,0 +1,17 @@
+# Local project knowledge and editor configuration
+AGENTS.md
+CLAUDE.md
+.claude/
+.gemini/
+.vscode/
+.idea/
+
+# Source data and licensed local fonts
+Dealerzy US - lista [R] - Main.csv
+galano-grotesque/
+
+# Working and source assets not used by the published frontend
+RAW/
+OLD RESOURCES/
+od V/
+wideo-scroll-lodka.mp4
