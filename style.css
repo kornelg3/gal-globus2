@@ -497,13 +497,6 @@ html, body {
 .dealer-detail__map .leaflet-control-zoom a:hover { background: #eef2f5; }
 .dealer-detail__map .leaflet-bar { border: 0; box-shadow: 0 0.15rem 0.6rem rgba(0, 0, 0, 0.35); }
 
-/* notka, gdy Mapbox odmowil i zeszlismy na CARTO */
-.dealer-detail__map-note {
-  margin: 0.6rem 0 0;
-  font-size: 0.68rem;
-  line-height: 1.5;
-  color: rgba(255, 210, 150, 0.75);
-}
 .dealer-detail__map .mapboxgl-ctrl-logo { transform: scale(0.8); transform-origin: left bottom; }
 .dealer-detail__map .mapboxgl-ctrl-attrib { font-size: 0.6rem; }
 .dealer-detail__map .mapboxgl-popup-content { color: #12293d; font-size: 0.8rem; }

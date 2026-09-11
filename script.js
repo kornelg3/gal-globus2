@@ -425,6 +425,14 @@ const MAP_PROVIDER = {
   zoom: 14
 };
 
+/* Mapbox jest na razie WYLACZONY — mapa zawsze leci na CARTO.
+   Powod: token konta "galeonyachting" ma URL restrictions na galeon.yachts,
+   wiec poza ta domena styl wczytuje sie (200), a kafelki dostaja 403
+   i zostaje pusty prostokat. Zeby go wlaczyc: MAPBOX_ENABLED = true
+   plus token (window.GALEON_MAPBOX_TOKEN albo ?mbtoken=...) i domena
+   dopisana do URL restrictions w koncie Mapboxa. */
+const MAPBOX_ENABLED = false;
+
 // Ile czekamy, az Mapbox wczyta styl, zanim uznamy go za martwego.
 const MAPBOX_TIMEOUT = 6000;
 
@@ -466,7 +474,7 @@ const DealerMap = (function () {
   }
 
   function useMapbox() {
-    return !!mapboxToken();
+    return MAPBOX_ENABLED && !!mapboxToken();
   }
 
   function loadAssets(cfg) {
@@ -557,7 +565,7 @@ const DealerMap = (function () {
       kind = "leaflet";
       loading = null;                       // Leaflet trzeba dopiero dociagnac
       loadAssets(MAP_PROVIDER.leaflet)
-        .then(function () { mountLeaflet(el, lat, lng, label); markFallback(el); })
+        .then(function () { mountLeaflet(el, lat, lng, label); })
         .catch(function () { el.classList.add("is-error"); });
     };
 
@@ -569,14 +577,6 @@ const DealerMap = (function () {
     setTimeout(function () {
       if (!settled && !(map && map.isStyleLoaded())) giveUp("timeout");
     }, MAPBOX_TIMEOUT);
-  }
-
-  /* Dyskretna notka pod mapa, zeby nie trzeba bylo zagladac do konsoli. */
-  function markFallback(el) {
-    const note = document.createElement("p");
-    note.className = "dealer-detail__map-note";
-    note.textContent = "Mapbox odrzucil ten adres (token ograniczony do galeon.yachts) — podklad CARTO.";
-    if (el.parentNode) el.parentNode.insertBefore(note, el.nextSibling);
   }
 
   function mount(el, lat, lng, label) {
