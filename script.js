@@ -293,6 +293,11 @@ function initScrollVideo() {
    współrzędnych co obrazek, więc liczymy realny prostokąt "cover"
    i nakładamy go na kontener pinezek. Pozycje podajemy w procentach
    obrazka (dealers.js › pos).
+
+   Pinezka = KONTYNENT, nie kraj. Grafika mapy nie ma potwierdzonego
+   rzutu, więc pozycji krajów nie da się policzyć ze współrzędnych,
+   a 69 pinezek i tak zlewałoby się w Europie w jedną plamę.
+   Wybór kraju robi się w panelu, o poziom niżej.
    ============================================================ */
 const MapPins = (function () {
   let layer = null;
@@ -303,15 +308,15 @@ const MapPins = (function () {
     img = mapImage;
     if (!layer || !Array.isArray(window.DEALERS)) return;
 
-    layer.innerHTML = window.DEALERS.map(function (group) {
-      const count = (group.dealers || []).length;
+    layer.innerHTML = window.DEALERS.map(function (cont) {
+      const n = countDealers(cont);
       return (
-        '<button class="map-pin" type="button" data-country="' + group.id + '"' +
-        ' style="left:' + group.pos.x + "%;top:" + group.pos.y + '%"' +
-        ' aria-label="' + dealerEscape(group.country) + ", " + count + ' locations">' +
+        '<button class="map-pin" type="button" data-continent="' + cont.id + '"' +
+        ' style="left:' + cont.pos.x + "%;top:" + cont.pos.y + '%"' +
+        ' aria-label="' + dealerEscape(cont.name) + ", " + n + ' locations">' +
         '<span class="map-pin__dot"></span>' +
-        '<span class="map-pin__label">' + dealerEscape(group.country) +
-        '<span class="map-pin__count">' + count + "</span></span>" +
+        '<span class="map-pin__label">' + dealerEscape(cont.name) +
+        '<span class="map-pin__count">' + n + "</span></span>" +
         "</button>"
       );
     }).join("");
@@ -324,7 +329,7 @@ const MapPins = (function () {
   function onPinClick(e) {
     const btn = e.target.closest(".map-pin");
     if (!btn) return;
-    openDealerPanel(btn.getAttribute("data-country"));
+    openDealerPanel(btn.getAttribute("data-continent"));
   }
 
   function unmount() {
@@ -361,12 +366,16 @@ const MapPins = (function () {
 })();
 
 /* ============================================================
-   PANEL DEALERÓW — trzy poziomy: kraje › dealerzy w kraju › dealer.
-   Dane: window.DEALERS (dealers.js).
+   PANEL DEALERÓW — cztery poziomy:
+   wszyscy › kontynent › kraj › dealer.
+   Dane: window.DEALERS (dealers.js), pobrane z produkcyjnego globusa.
    ============================================================ */
 
 // Stan nawigacji panelu.
-const DealerNav = { view: "countries", countryId: null, dealerIndex: null };
+const DealerNav = { view: "continents", continentId: null, countryId: null, dealerIndex: null };
+
+// Adres serwisu — linki "More" w danych są względne (/dealers/...).
+const SITE = "https://galeon.yachts";
 
 // Bezpieczne escapowanie tekstu wstawianego do HTML.
 function dealerEscape(s) {
@@ -386,117 +395,120 @@ function dealerPinSVG(cls) {
   );
 }
 
-function findCountry(id) {
-  return (window.DEALERS || []).filter(function (g) { return g.id === id; })[0] || null;
+function countDealers(cont) {
+  return (cont.countries || []).reduce(function (n, c) { return n + (c.dealers || []).length; }, 0);
+}
+
+function findContinent(id) {
+  return (window.DEALERS || []).filter(function (c) { return c.id === id; })[0] || null;
+}
+
+function findCountry(cont, id) {
+  if (!cont) return null;
+  return (cont.countries || []).filter(function (c) { return c.id === id; })[0] || null;
 }
 
 /* ----------------------------------------------------------
-   DANE ZASTĘPCZE. Lista wejściowa miała wyłącznie kraj + nazwę,
-   więc telefon, e-mail i adres generujemy deterministycznie
-   z nazwy dealera — żeby makieta pokazywała docelowy układ.
-   Gdy przyjdą prawdziwe dane, ta funkcja znika, a pola wchodzą
-   wprost do dealers.js.
+   Wiersz listy — ten sam komponent na każdym poziomie.
    ---------------------------------------------------------- */
-function hashString(s) {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-const COUNTRY_DIAL = {
-  US: "+1", CA: "+1", MX: "+52", GT: "+502", SV: "+503",
-  HN: "+504", NI: "+505", CR: "+506", PA: "+507"
-};
-
-function buildPlaceholderContact(dealer, group) {
-  const h = hashString(dealer.name + group.id);
-  const slug = dealer.name.toLowerCase().replace(/[^a-z0-9]+/g, "").slice(0, 18) || "dealer";
-  const dial = COUNTRY_DIAL[group.id] || "+1";
-  const num = String(2000000000 + (h % 7999999999)).slice(0, 10);
-  const street = (100 + (h % 8900)) + " Marina Boulevard";
-  const locality = dealer.city ? dealer.city + ", " + group.country : group.country;
-
-  return {
-    phone: dial + " " + num.slice(0, 3) + " " + num.slice(3, 6) + " " + num.slice(6, 10),
-    email: "sales@" + slug + ".com",
-    address: street + "\n" + locality,
-    // Delikatne rozsunięcie względem pinezki kraju, żeby zbliżona mapka
-    // każdego dealera nie wyglądała identycznie. Też dane zastępcze.
-    pos: {
-      x: group.pos.x + (((h >> 3) % 200) - 100) / 120,
-      y: group.pos.y + (((h >> 11) % 200) - 100) / 160
-    }
-  };
+function dealerRow(attr, value, name, sub) {
+  return (
+    '<li><button class="dealer-row" type="button" ' + attr + '="' + dealerEscape(value) + '">' +
+    dealerPinSVG() +
+    '<span class="dealer-row__text"><span class="dealer-row__name">' + dealerEscape(name) + "</span>" +
+    (sub ? '<span class="dealer-row__sub">' + dealerEscape(sub) + "</span>" : "") +
+    "</span>" +
+    '<span class="dealer-row__arrow" aria-hidden="true">&rarr;</span></button></li>'
+  );
 }
 
 /* ----------------------------------------------------------
    RENDER — jedna funkcja na widok.
    ---------------------------------------------------------- */
-function renderCountriesView() {
-  const groups = window.DEALERS || [];
-  const total = groups.reduce(function (n, g) { return n + (g.dealers || []).length; }, 0);
+function renderContinentsView() {
+  const conts = window.DEALERS || [];
+  const total = conts.reduce(function (n, c) { return n + countDealers(c); }, 0);
+  const countries = conts.reduce(function (n, c) { return n + (c.countries || []).length; }, 0);
 
   return (
     '<p class="dealer-panel__eyebrow">Galeon dealer network</p>' +
     '<h2 class="dealer-panel__title">All locations</h2>' +
-    '<p class="dealer-panel__meta">' + groups.length + " countries &middot; " + total + " locations</p>" +
+    '<p class="dealer-panel__meta">' + conts.length + " continents &middot; " +
+    countries + " countries &middot; " + total + " locations</p>" +
     '<ul class="dealer-list">' +
-    groups.map(function (g) {
-      return (
-        '<li><button class="dealer-row" type="button" data-go-country="' + g.id + '">' +
-        dealerPinSVG() +
-        '<span class="dealer-row__text"><span class="dealer-row__name">' +
-        dealerEscape(g.country) + "</span>" +
-        '<span class="dealer-row__sub">' + (g.dealers || []).length + " locations</span></span>" +
-        '<span class="dealer-row__arrow" aria-hidden="true">&rarr;</span></button></li>'
-      );
+    conts.map(function (c) {
+      return dealerRow("data-go-continent", c.id, c.name,
+        (c.countries || []).length + " countries · " + countDealers(c) + " locations");
     }).join("") +
     "</ul>"
   );
 }
 
-function renderCountryView(group) {
+function renderContinentView(cont) {
   return (
     '<p class="dealer-panel__eyebrow">Dealers in</p>' +
-    '<h2 class="dealer-panel__title">' + dealerEscape(group.country) + "</h2>" +
-    '<p class="dealer-panel__meta">' + (group.dealers || []).length + " locations</p>" +
+    '<h2 class="dealer-panel__title">' + dealerEscape(cont.name) + "</h2>" +
+    '<p class="dealer-panel__meta">' + (cont.countries || []).length + " countries &middot; " +
+    countDealers(cont) + " locations</p>" +
     '<ul class="dealer-list">' +
-    (group.dealers || []).map(function (d, i) {
-      return (
-        '<li><button class="dealer-row" type="button" data-go-dealer="' + i + '">' +
-        dealerPinSVG() +
-        '<span class="dealer-row__text"><span class="dealer-row__name">' +
-        dealerEscape(d.name) + "</span>" +
-        (d.city ? '<span class="dealer-row__sub">' + dealerEscape(d.city) + "</span>" : "") +
-        "</span>" +
-        '<span class="dealer-row__arrow" aria-hidden="true">&rarr;</span></button></li>'
-      );
+    (cont.countries || []).map(function (c) {
+      const n = (c.dealers || []).length;
+      return dealerRow("data-go-country", c.id, c.name, n + (n === 1 ? " location" : " locations"));
     }).join("") +
     "</ul>"
   );
 }
 
-function renderDealerView(group, index) {
-  const d = group.dealers[index];
-  const c = buildPlaceholderContact(d, group);
+function renderCountryView(cont, country) {
+  return (
+    '<p class="dealer-panel__eyebrow">' + dealerEscape(cont.name) + "</p>" +
+    '<h2 class="dealer-panel__title">' + dealerEscape(country.name) + "</h2>" +
+    '<p class="dealer-panel__meta">' + (country.dealers || []).length + " locations</p>" +
+    '<ul class="dealer-list">' +
+    (country.dealers || []).map(function (d, i) {
+      return dealerRow("data-go-dealer", String(i), d.name, d.address || "");
+    }).join("") +
+    "</ul>"
+  );
+}
+
+function renderDealerView(cont, country, index) {
+  const d = country.dealers[index];
   const mapSrc = document.getElementById("videoCanvas").getAttribute("final-image");
-  const telHref = c.phone.replace(/\s/g, "");
+  const rows = [];
+
+  if (d.address) rows.push("<dt>Address</dt><dd>" + dealerEscape(d.address) + "</dd>");
+  if (d.phone) {
+    rows.push('<dt>Phone</dt><dd><a href="tel:' + dealerEscape(d.phone.replace(/[\s()]/g, "")) +
+      '">' + dealerEscape(d.phone) + "</a></dd>");
+  }
+  if (d.email) {
+    rows.push('<dt>E-mail</dt><dd><a href="mailto:' + dealerEscape(d.email) + '">' +
+      dealerEscape(d.email) + "</a></dd>");
+  }
+
+  const links = [];
+  if (d.page) {
+    links.push('<a class="dealer-detail__link" href="' + SITE + dealerEscape(d.page) +
+      '" target="_blank" rel="noopener">Dealer page</a>');
+  }
+  if (d.maps) {
+    links.push('<a class="dealer-detail__link is-secondary" href="' + dealerEscape(d.maps) +
+      '" target="_blank" rel="noopener nofollow">See directions</a>');
+  }
 
   return (
-    '<p class="dealer-panel__eyebrow">' + dealerEscape(group.country) + "</p>" +
+    '<p class="dealer-panel__eyebrow">' + dealerEscape(country.name) + "</p>" +
     '<h2 class="dealer-panel__title">' + dealerEscape(d.name) + "</h2>" +
-    (d.city ? '<p class="dealer-panel__meta">' + dealerEscape(d.city) + "</p>" : "") +
 
-    '<dl class="dealer-detail">' +
-    "<dt>Address</dt><dd>" + dealerEscape(c.address).replace(/\n/g, "<br>") + "</dd>" +
-    '<dt>Phone</dt><dd><a href="tel:' + dealerEscape(telHref) + '">' + dealerEscape(c.phone) + "</a></dd>" +
-    '<dt>E-mail</dt><dd><a href="mailto:' + dealerEscape(c.email) + '">' + dealerEscape(c.email) + "</a></dd>" +
-    "</dl>" +
+    (rows.length ? '<dl class="dealer-detail">' + rows.join("") + "</dl>" : "") +
+    (links.length ? '<div class="dealer-detail__links">' + links.join("") + "</div>" : "") +
 
-    // Zbliżony wycinek mapy idzie POD dane kontaktowe — najpierw to,
-    // po co użytkownik tu przyszedł, potem gdzie to jest.
+    // Zbliżony wycinek mapy idzie POD dane kontaktowe. Na razie pokazuje
+    // region kontynentu — dokładne miejsce dealera wymaga współrzędnych
+    // przeliczalnych na tę grafikę albo osobnego kafla mapy.
     '<div class="dealer-detail__map" style="background-image:url(&quot;' + dealerEscape(mapSrc) +
-    '&quot;);background-position:' + c.pos.x + "% " + c.pos.y + '%">' +
+    '&quot;);background-position:' + cont.pos.x + "% " + cont.pos.y + '%">' +
     '<span class="dealer-detail__crosshair"></span>' +
     "</div>"
   );
@@ -511,21 +523,27 @@ function renderDealerPanel() {
   const crumb = document.getElementById("dealerPanelCrumb");
   if (!body || !Array.isArray(window.DEALERS)) return;
 
-  const group = DealerNav.countryId ? findCountry(DealerNav.countryId) : null;
+  const cont = DealerNav.continentId ? findContinent(DealerNav.continentId) : null;
+  const country = DealerNav.countryId ? findCountry(cont, DealerNav.countryId) : null;
 
-  if (DealerNav.view === "dealer" && group) {
-    body.innerHTML = renderDealerView(group, DealerNav.dealerIndex);
-    crumb.textContent = "All locations › " + group.country;
+  if (DealerNav.view === "dealer" && cont && country) {
+    body.innerHTML = renderDealerView(cont, country, DealerNav.dealerIndex);
+    crumb.textContent = "All locations › " + cont.name + " › " + country.name;
     back.hidden = false;
-    back.setAttribute("aria-label", "Back to " + group.country);
-  } else if (DealerNav.view === "country" && group) {
-    body.innerHTML = renderCountryView(group);
+    back.setAttribute("aria-label", "Back to " + country.name);
+  } else if (DealerNav.view === "country" && cont && country) {
+    body.innerHTML = renderCountryView(cont, country);
+    crumb.textContent = "All locations › " + cont.name;
+    back.hidden = false;
+    back.setAttribute("aria-label", "Back to " + cont.name);
+  } else if (DealerNav.view === "continent" && cont) {
+    body.innerHTML = renderContinentView(cont);
     crumb.textContent = "All locations";
     back.hidden = false;
     back.setAttribute("aria-label", "Back to all locations");
   } else {
-    DealerNav.view = "countries";
-    body.innerHTML = renderCountriesView();
+    DealerNav.view = "continents";
+    body.innerHTML = renderContinentsView();
     crumb.textContent = "";
     back.hidden = true;
   }
@@ -536,23 +554,27 @@ function renderDealerPanel() {
 /* ----------------------------------------------------------
    Nawigacja.
    ---------------------------------------------------------- */
-function dealerGoTo(view, countryId, dealerIndex) {
+function dealerGoTo(view, patch) {
   DealerNav.view = view;
-  if (countryId !== undefined) DealerNav.countryId = countryId;
-  if (dealerIndex !== undefined) DealerNav.dealerIndex = dealerIndex;
+  if (patch) {
+    if ("continentId" in patch) DealerNav.continentId = patch.continentId;
+    if ("countryId" in patch) DealerNav.countryId = patch.countryId;
+    if ("dealerIndex" in patch) DealerNav.dealerIndex = patch.dealerIndex;
+  }
   renderDealerPanel();
 }
 
 function dealerGoBack() {
   if (DealerNav.view === "dealer") dealerGoTo("country");
-  else if (DealerNav.view === "country") dealerGoTo("countries", null);
+  else if (DealerNav.view === "country") dealerGoTo("continent", { countryId: null });
+  else if (DealerNav.view === "continent") dealerGoTo("continents", { continentId: null, countryId: null });
 }
 
-function openDealerPanel(countryId) {
+function openDealerPanel(continentId) {
   const panel = document.getElementById("dealerPanel");
   if (!panel) return;
-  if (countryId) dealerGoTo("country", countryId);
-  else dealerGoTo("countries", null);
+  if (continentId) dealerGoTo("continent", { continentId: continentId, countryId: null });
+  else dealerGoTo("continents", { continentId: null, countryId: null });
   panel.classList.add("is-open");
   panel.setAttribute("aria-hidden", "false");
 }
@@ -574,25 +596,30 @@ function initDealerPanel() {
   if (backBtn) backBtn.addEventListener("click", dealerGoBack);
   if (openAll) openAll.addEventListener("click", function () { openDealerPanel(null); });
 
-  // Delegacja klików wewnątrz panelu: wejście w kraj / w dealera.
+  // Delegacja klików wewnątrz panelu: zejście o poziom niżej.
   if (body) {
     body.addEventListener("click", function (e) {
+      const toCont = e.target.closest("[data-go-continent]");
+      if (toCont) {
+        dealerGoTo("continent", { continentId: toCont.getAttribute("data-go-continent"), countryId: null });
+        return;
+      }
       const toCountry = e.target.closest("[data-go-country]");
       if (toCountry) {
-        dealerGoTo("country", toCountry.getAttribute("data-go-country"));
+        dealerGoTo("country", { countryId: toCountry.getAttribute("data-go-country") });
         return;
       }
       const toDealer = e.target.closest("[data-go-dealer]");
       if (toDealer) {
-        dealerGoTo("dealer", undefined, Number(toDealer.getAttribute("data-go-dealer")));
+        dealerGoTo("dealer", { dealerIndex: Number(toDealer.getAttribute("data-go-dealer")) });
       }
     });
   }
 
-  // Esc: cofa o poziom, a z listy krajów zamyka panel.
+  // Esc: cofa o poziom, a z listy kontynentów zamyka panel.
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
-    if (DealerNav.view === "countries") closeDealerPanel();
+    if (DealerNav.view === "continents") closeDealerPanel();
     else dealerGoBack();
   });
 }

@@ -476,6 +476,36 @@ html, body {
 .dealer-detail a { color: #8fc9ee; text-decoration: none; }
 .dealer-detail a:hover { text-decoration: underline; }
 
+/* linki pod danymi kontaktowymi: strona dealera + dojazd w Mapach Google */
+.dealer-detail__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+.dealer-detail__link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.65rem 1.3rem;
+  border-radius: 999px;
+  background: #1f4a73;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: background 0.3s ease;
+}
+.dealer-detail__link:hover { background: #2a5d8d; }
+
+.dealer-detail__link.is-secondary {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+}
+.dealer-detail__link.is-secondary:hover { background: rgba(255, 255, 255, 0.1); }
+
 @media (max-width: 860px) {
   .dealer-panel { width: 100vw; max-width: 100vw; }
   .dealer-panel__bar { padding-left: 1.75rem; }
