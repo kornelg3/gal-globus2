@@ -367,40 +367,61 @@ const MapPins = (function () {
 })();
 
 /* ============================================================
-   MAPA DEALERA — Mapbox GL JS, ten sam token i styl co na produkcji
-   (odczytane z mapbox-loader.min.js, konto "galeonyachting").
+   MAPA DEALERA — zwykła mapa uliczna z zoomem, w widoku dealera.
+
+   Dwa warianty, ten sam interfejs:
+
+   • DOMYŚLNIE: Leaflet + kafelki OpenStreetMap. Bez konta, bez tokenu,
+     bez karty. ~45 KB biblioteki zamiast ~340 KB Mapboxa. To wystarcza
+     do oceny układu i do prototypu.
+
+   • PRODUKCJA: jeśli strona ustawi window.GALEON_MAPBOX_TOKEN, moduł
+     bierze Mapbox GL 3.14.0 ze stylem streets-v12 — dokładnie ten, który
+     galeon.yachts ma dziś w panelu kraju. W Webflow token już tam siedzi,
+     więc przełączenie to jedna linijka, nie przepisywanie.
+
+   ⚠ Kafelki OSM są na licencji do użytku niekomercyjnego o umiarkowanym
+     ruchu (tile usage policy). Na produkcję idzie wariant Mapbox albo
+     inny opłacony dostawca kafelków.
 
    Biblioteka dociąga się DOPIERO przy pierwszym wejściu w konkretnego
-   dealera — czyli na najgłębszym poziomie, do którego dochodzi ułamek
-   użytkowników. Widok globalny zostaje statyczną grafiką; Mapbox nie
-   wraca do etapu 0 ani 1.
+   dealera — najgłębszy poziom, do którego dochodzi ułamek użytkowników.
+   Widok globalny zostaje statyczną grafiką.
    ============================================================ */
-const MAPBOX = {
-  // Publiczny token (pk.*) konta "galeonyachting" — ten sam, ktory serwuje
-  // mapbox-loader.min.js na produkcji. NIE jest wpisany w repo: GitHub
-  // blokuje push z tokenem Mapboxa (push protection). Wstawiany recznie
-  // albo przez window.GALEON_MAPBOX_TOKEN.
-  token: window.GALEON_MAPBOX_TOKEN || "",
-  style: "mapbox://styles/mapbox/streets-v12",
-  js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
-  css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css",
-  zoom: 13
+const MAP_PROVIDER = {
+  leaflet: {
+    js: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js",
+    css: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css",
+    tiles: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  },
+  mapbox: {
+    js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
+    css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css",
+    style: "mapbox://styles/mapbox/streets-v12"
+  },
+  zoom: 14
 };
 
 const DealerMap = (function () {
   let loading = null;   // Promise ładowania biblioteki (raz na sesję)
   let map = null;       // aktualna instancja mapy
+  let kind = null;      // "leaflet" albo "mapbox"
 
-  function load() {
+  function useMapbox() {
+    return !!window.GALEON_MAPBOX_TOKEN;
+  }
+
+  function loadAssets(cfg) {
     if (loading) return loading;
     loading = new Promise(function (resolve, reject) {
       const css = document.createElement("link");
       css.rel = "stylesheet";
-      css.href = MAPBOX.css;
+      css.href = cfg.css;
       document.head.appendChild(css);
 
       const js = document.createElement("script");
-      js.src = MAPBOX.js;
+      js.src = cfg.js;
       js.onload = resolve;
       js.onerror = reject;
       document.head.appendChild(js);
@@ -409,32 +430,68 @@ const DealerMap = (function () {
   }
 
   function destroy() {
-    if (map) {
-      map.remove();
-      map = null;
-    }
+    if (!map) return;
+    if (kind === "mapbox") map.remove();
+    else map.remove();   // Leaflet ma tę samą nazwę metody
+    map = null;
+  }
+
+  function mountLeaflet(el, lat, lng, label) {
+    const L = window.L;
+    map = L.map(el, {
+      center: [lat, lng],
+      zoom: MAP_PROVIDER.zoom,
+      // kółko myszy ma przewijać panel, nie zoomować mapę;
+      // zoom włącza się po kliknięciu w mapę (i gasnie po wyjściu)
+      scrollWheelZoom: false,
+      zoomControl: true
+    });
+    L.tileLayer(MAP_PROVIDER.leaflet.tiles, {
+      maxZoom: 19,
+      attribution: MAP_PROVIDER.leaflet.attribution
+    }).addTo(map);
+
+    L.marker([lat, lng], {
+      icon: L.divIcon({
+        className: "dealer-map-pin",
+        html: '<span class="dealer-map-pin__dot"></span>',
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      }),
+      title: label || ""
+    }).addTo(map);
+
+    map.on("click", function () { map.scrollWheelZoom.enable(); });
+    map.on("mouseout", function () { map.scrollWheelZoom.disable(); });
+  }
+
+  function mountMapbox(el, lat, lng, label) {
+    const gl = window.mapboxgl;
+    gl.accessToken = window.GALEON_MAPBOX_TOKEN;
+    map = new gl.Map({
+      container: el,
+      style: MAP_PROVIDER.mapbox.style,
+      center: [lng, lat],
+      zoom: MAP_PROVIDER.zoom,
+      // scroll w panelu ma przewijać panel — zoom kółkiem dopiero z Ctrl
+      cooperativeGestures: true
+    });
+    map.addControl(new gl.NavigationControl({ showCompass: false }), "top-right");
+    new gl.Marker({ color: "#1f4a73" })
+      .setLngLat([lng, lat])
+      .setPopup(new gl.Popup({ offset: 24 }).setText(label || ""))
+      .addTo(map);
   }
 
   function mount(el, lat, lng, label) {
     destroy();
     if (!el) return;
-    load().then(function () {
-      window.mapboxgl.accessToken = MAPBOX.token;
-      map = new window.mapboxgl.Map({
-        container: el,
-        style: MAPBOX.style,
-        center: [lng, lat],
-        zoom: MAPBOX.zoom,
-        attributionControl: true,
-        // scroll w panelu ma przewijać panel, nie zoomować mapę —
-        // zoom kółkiem dopiero z Ctrl, plus przyciski +/- obok
-        cooperativeGestures: true
-      });
-      map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-      new window.mapboxgl.Marker({ color: "#1f4a73" })
-        .setLngLat([lng, lat])
-        .setPopup(new window.mapboxgl.Popup({ offset: 24 }).setText(label || ""))
-        .addTo(map);
+    kind = useMapbox() ? "mapbox" : "leaflet";
+    const cfg = kind === "mapbox" ? MAP_PROVIDER.mapbox : MAP_PROVIDER.leaflet;
+
+    loadAssets(cfg).then(function () {
+      if (kind === "mapbox") mountMapbox(el, lat, lng, label);
+      else mountLeaflet(el, lat, lng, label);
       el.classList.remove("is-loading");
     }).catch(function () {
       el.classList.remove("is-loading");
