@@ -14,8 +14,6 @@
    lista wejsciowa zawierala wylacznie kraj + nazwe.
    ============================================================ */
 
-window.DEALERS_CONTACT_IS_PLACEHOLDER = true;
-
 window.DEALERS = [
   {
     "id": "US",

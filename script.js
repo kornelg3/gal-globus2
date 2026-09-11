@@ -487,21 +487,18 @@ function renderDealerView(group, index) {
     '<h2 class="dealer-panel__title">' + dealerEscape(d.name) + "</h2>" +
     (d.city ? '<p class="dealer-panel__meta">' + dealerEscape(d.city) + "</p>" : "") +
 
-    '<div class="dealer-detail__map" style="background-image:url(&quot;' + dealerEscape(mapSrc) +
-    '&quot;);background-position:' + c.pos.x + "% " + c.pos.y + '%">' +
-    '<span class="dealer-detail__crosshair"></span>' +
-    "</div>" +
-
     '<dl class="dealer-detail">' +
     "<dt>Address</dt><dd>" + dealerEscape(c.address).replace(/\n/g, "<br>") + "</dd>" +
     '<dt>Phone</dt><dd><a href="tel:' + dealerEscape(telHref) + '">' + dealerEscape(c.phone) + "</a></dd>" +
     '<dt>E-mail</dt><dd><a href="mailto:' + dealerEscape(c.email) + '">' + dealerEscape(c.email) + "</a></dd>" +
     "</dl>" +
 
-    (window.DEALERS_CONTACT_IS_PLACEHOLDER
-      ? '<p class="dealer-detail__note">Adres, telefon, e-mail i wycinek mapy to dane ' +
-        "zastępcze — lista wejściowa zawierała wyłącznie kraj i nazwę dealera.</p>"
-      : "")
+    // Zbliżony wycinek mapy idzie POD dane kontaktowe — najpierw to,
+    // po co użytkownik tu przyszedł, potem gdzie to jest.
+    '<div class="dealer-detail__map" style="background-image:url(&quot;' + dealerEscape(mapSrc) +
+    '&quot;);background-position:' + c.pos.x + "% " + c.pos.y + '%">' +
+    '<span class="dealer-detail__crosshair"></span>' +
+    "</div>"
   );
 }
 
