@@ -371,18 +371,21 @@ const MapPins = (function () {
 
    Dwa warianty, ten sam interfejs:
 
-   • DOMYŚLNIE: Leaflet + kafelki OpenStreetMap. Bez konta, bez tokenu,
-     bez karty. ~45 KB biblioteki zamiast ~340 KB Mapboxa. To wystarcza
-     do oceny układu i do prototypu.
+   • DOMYŚLNIE: Leaflet + stonowane kafelki CARTO na danych OpenStreetMap.
+     Bez konta, bez tokenu, bez karty. ~40 KB biblioteki zamiast ~340 KB
+     Mapboxa. To wystarcza do oceny układu i do prototypu.
 
    • PRODUKCJA: jeśli strona ustawi window.GALEON_MAPBOX_TOKEN, moduł
      bierze Mapbox GL 3.14.0 ze stylem streets-v12 — dokładnie ten, który
      galeon.yachts ma dziś w panelu kraju. W Webflow token już tam siedzi,
      więc przełączenie to jedna linijka, nie przepisywanie.
 
-   ⚠ Kafelki OSM są na licencji do użytku niekomercyjnego o umiarkowanym
-     ruchu (tile usage policy). Na produkcję idzie wariant Mapbox albo
-     inny opłacony dostawca kafelków.
+   ⚠ CARTO daje darmowy limit 5 mln kafelków/miesiąc, ale od niedawna
+     prosi o bezpłatny klucz API przy użyciu poza swoją platformą
+     (carto.com/basemaps/apikey — bez konta i bez karty). Bez klucza
+     kafelki nadal chodzą, więc do prototypu wystarczy; na produkcję
+     albo klucz CARTO, albo wariant Mapbox niżej.
+     Atrybucja CARTO + OpenStreetMap musi zostać widoczna.
 
    Biblioteka dociąga się DOPIERO przy pierwszym wejściu w konkretnego
    dealera — najgłębszy poziom, do którego dochodzi ułamek użytkowników.
@@ -392,8 +395,25 @@ const MAP_PROVIDER = {
   leaflet: {
     js: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js",
     css: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css",
-    tiles: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+
+    /* Podklad: CARTO — stonowane kafelki na danych OpenStreetMap.
+       Domyslnie "Dark Matter": ciemny, mocno odbarwiony, wpisuje sie
+       w nocna Ziemie z reszty sekcji i nie razi w granatowym panelu.
+
+       Zamiana stylu to podmiana jednego czlonu w adresie:
+         dark_all        — Dark Matter (domyslny)
+         dark_nolabels   — to samo bez nazw
+         light_all       — Positron, jasny szary
+         light_nolabels  — Positron bez nazw
+       Wariant kolorowy siedzi pod innym adresem:
+         https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png
+
+       {r} = "@2x" na ekranach retina, {s} = subdomeny a-d (rownolegle pobieranie). */
+    tiles: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    subdomains: "abcd",
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
+      '&copy; <a href="https://carto.com/attributions">CARTO</a>'
   },
   mapbox: {
     js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
@@ -447,7 +467,9 @@ const DealerMap = (function () {
       zoomControl: true
     });
     L.tileLayer(MAP_PROVIDER.leaflet.tiles, {
-      maxZoom: 19,
+      subdomains: MAP_PROVIDER.leaflet.subdomains,
+      maxZoom: MAP_PROVIDER.leaflet.maxZoom,
+      detectRetina: true,
       attribution: MAP_PROVIDER.leaflet.attribution
     }).addTo(map);
 
