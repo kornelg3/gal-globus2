@@ -395,14 +395,14 @@ const MAP_PROVIDER = {
     css: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css",
 
     /* Podklad: CARTO — stonowane kafelki na danych OpenStreetMap.
-       Domyslnie "Dark Matter": ciemny, mocno odbarwiony, wpisuje sie
-       w nocna Ziemie z reszty sekcji i nie razi w granatowym panelu.
+       Domyslnie "Positron" (light_all): jasny, jasnoszary, delikatny —
+       na ciemnym wariancie nie bylo widac ulic ani nazw.
 
        Zamiana stylu to podmiana jednego czlonu w adresie:
-         dark_all        — Dark Matter (domyslny)
-         dark_nolabels   — to samo bez nazw
-         light_all       — Positron, jasny szary
+         light_all       — Positron (domyslny)
          light_nolabels  — Positron bez nazw
+         dark_all        — Dark Matter, ciemny
+         dark_nolabels   — to samo bez nazw
        Wariant kolorowy siedzi pod innym adresem:
          https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png
 
@@ -411,7 +411,7 @@ const MAP_PROVIDER = {
        siedzi w adresie kafelka, wiec i tak widac go w Network. Sluzy do
        przypisania ruchu do konta i limitu 5 mln kafelkow/miesiac. */
     key: "cb1_2j5u_1_8963591d87edf0203873ecf3",
-    tiles: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+    tiles: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
     subdomains: "abcd",
     maxZoom: 20,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ' +
@@ -424,6 +424,9 @@ const MAP_PROVIDER = {
   },
   zoom: 14
 };
+
+// Ile czekamy, az Mapbox wczyta styl, zanim uznamy go za martwego.
+const MAPBOX_TIMEOUT = 6000;
 
 const DealerMap = (function () {
   let loading = null;   // Promise ładowania biblioteki (raz na sesję)
@@ -538,6 +541,42 @@ const DealerMap = (function () {
       .setLngLat([lng, lat])
       .setPopup(new gl.Popup({ offset: 24 }).setText(label || ""))
       .addTo(map);
+
+    /* Token Mapboxa bywa ograniczony do konkretnej domeny (URL restrictions).
+       Wtedy styl wczytuje sie normalnie, a kafelki dostaja 403 i zostaje
+       pusty prostokat — bez zadnego bledu w konsoli. Zamiast tego po paru
+       sekundach schodzimy na CARTO, zeby mapa byla. */
+    let settled = false;
+    const giveUp = function (why) {
+      if (settled) return;
+      settled = true;
+      console.warn("[DealerMap] Mapbox nie wystartowal (" + why + ") — przechodze na CARTO.");
+      destroy();
+      el.innerHTML = "";
+      el.className = "dealer-detail__map is-live";
+      kind = "leaflet";
+      loading = null;                       // Leaflet trzeba dopiero dociagnac
+      loadAssets(MAP_PROVIDER.leaflet)
+        .then(function () { mountLeaflet(el, lat, lng, label); markFallback(el); })
+        .catch(function () { el.classList.add("is-error"); });
+    };
+
+    map.on("load", function () { settled = true; });
+    map.on("error", function (e) {
+      const st = e && e.error && e.error.status;
+      if (st === 401 || st === 403) giveUp("HTTP " + st);
+    });
+    setTimeout(function () {
+      if (!settled && !(map && map.isStyleLoaded())) giveUp("timeout");
+    }, MAPBOX_TIMEOUT);
+  }
+
+  /* Dyskretna notka pod mapa, zeby nie trzeba bylo zagladac do konsoli. */
+  function markFallback(el) {
+    const note = document.createElement("p");
+    note.className = "dealer-detail__map-note";
+    note.textContent = "Mapbox odrzucil ten adres (token ograniczony do galeon.yachts) — podklad CARTO.";
+    if (el.parentNode) el.parentNode.insertBefore(note, el.nextSibling);
   }
 
   function mount(el, lat, lng, label) {
