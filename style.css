@@ -445,6 +445,41 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
+/* wariant interaktywny: Mapbox GL. Ten sam token i styl co na produkcji. */
+.dealer-detail__map.is-live {
+  aspect-ratio: 4 / 3;
+  background: #0f2233;
+}
+.dealer-detail__map.is-loading::after {
+  content: "Loading map…";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+.dealer-detail__map.is-error::after {
+  content: "Map unavailable";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 180, 180, 0.7);
+}
+
+/* Mapbox wstrzykuje wlasne style — domykamy tylko to, co odstaje w panelu. */
+.dealer-detail__map .mapboxgl-ctrl-logo { transform: scale(0.8); transform-origin: left bottom; }
+.dealer-detail__map .mapboxgl-ctrl-attrib { font-size: 0.6rem; }
+.dealer-detail__map .mapboxgl-popup-content { color: #12293d; font-size: 0.8rem; }
+
 .dealer-detail__crosshair {
   position: absolute;
   left: 50%;

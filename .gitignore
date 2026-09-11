@@ -15,3 +15,6 @@ RAW/
 OLD RESOURCES/
 od V/
 wideo-scroll-lodka.mp4
+
+# Publiczny token Mapboxa — GitHub blokuje push z tokenem w repo
+token.txt

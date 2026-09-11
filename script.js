@@ -21,6 +21,7 @@ function initScrollVideo() {
   const videoSrc = canvas.getAttribute("video-src");
   const videoSrc2 = canvas.getAttribute("video-src-2"); // druga animacja (po kliknięciu buttona)
   const endButton = document.getElementById("endButton");
+  const endCta = document.getElementById("endCta");   // wrapper: naglowek + button
   const backButton = document.getElementById("backToGlobe");
   const mapToolbar = document.getElementById("mapToolbar");
 
@@ -157,13 +158,13 @@ function initScrollVideo() {
   }
 
   /* ----------------------------------------------------------
-     toggleEndButton() — pokazuje/ukrywa button na końcu scrolla.
+     toggleEndButton() — pokazuje/ukrywa ekran końcowy (nagłówek + button).
      ---------------------------------------------------------- */
   function toggleEndButton(show) {
-    if (!endButton) return;
-    // Gdy druga animacja ruszyła albo mapa jest na ekranie — button znika.
+    if (!endCta) return;
+    // Gdy druga animacja ruszyła albo mapa jest na ekranie — ekran końcowy znika.
     if (playingSecond || finalImage) show = false;
-    endButton.classList.toggle("is-visible", show);
+    endCta.classList.toggle("is-visible", show);
   }
 
   /* ----------------------------------------------------------
@@ -366,6 +367,85 @@ const MapPins = (function () {
 })();
 
 /* ============================================================
+   MAPA DEALERA — Mapbox GL JS, ten sam token i styl co na produkcji
+   (odczytane z mapbox-loader.min.js, konto "galeonyachting").
+
+   Biblioteka dociąga się DOPIERO przy pierwszym wejściu w konkretnego
+   dealera — czyli na najgłębszym poziomie, do którego dochodzi ułamek
+   użytkowników. Widok globalny zostaje statyczną grafiką; Mapbox nie
+   wraca do etapu 0 ani 1.
+   ============================================================ */
+const MAPBOX = {
+  // Publiczny token (pk.*) konta "galeonyachting" — ten sam, ktory serwuje
+  // mapbox-loader.min.js na produkcji. NIE jest wpisany w repo: GitHub
+  // blokuje push z tokenem Mapboxa (push protection). Wstawiany recznie
+  // albo przez window.GALEON_MAPBOX_TOKEN.
+  token: window.GALEON_MAPBOX_TOKEN || "",
+  style: "mapbox://styles/mapbox/streets-v12",
+  js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
+  css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css",
+  zoom: 13
+};
+
+const DealerMap = (function () {
+  let loading = null;   // Promise ładowania biblioteki (raz na sesję)
+  let map = null;       // aktualna instancja mapy
+
+  function load() {
+    if (loading) return loading;
+    loading = new Promise(function (resolve, reject) {
+      const css = document.createElement("link");
+      css.rel = "stylesheet";
+      css.href = MAPBOX.css;
+      document.head.appendChild(css);
+
+      const js = document.createElement("script");
+      js.src = MAPBOX.js;
+      js.onload = resolve;
+      js.onerror = reject;
+      document.head.appendChild(js);
+    });
+    return loading;
+  }
+
+  function destroy() {
+    if (map) {
+      map.remove();
+      map = null;
+    }
+  }
+
+  function mount(el, lat, lng, label) {
+    destroy();
+    if (!el) return;
+    load().then(function () {
+      window.mapboxgl.accessToken = MAPBOX.token;
+      map = new window.mapboxgl.Map({
+        container: el,
+        style: MAPBOX.style,
+        center: [lng, lat],
+        zoom: MAPBOX.zoom,
+        attributionControl: true,
+        // scroll w panelu ma przewijać panel, nie zoomować mapę —
+        // zoom kółkiem dopiero z Ctrl, plus przyciski +/- obok
+        cooperativeGestures: true
+      });
+      map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      new window.mapboxgl.Marker({ color: "#1f4a73" })
+        .setLngLat([lng, lat])
+        .setPopup(new window.mapboxgl.Popup({ offset: 24 }).setText(label || ""))
+        .addTo(map);
+      el.classList.remove("is-loading");
+    }).catch(function () {
+      el.classList.remove("is-loading");
+      el.classList.add("is-error");
+    });
+  }
+
+  return { mount: mount, destroy: destroy };
+})();
+
+/* ============================================================
    PANEL DEALERÓW — cztery poziomy:
    wszyscy › kontynent › kraj › dealer.
    Dane: window.DEALERS (dealers.js), pobrane z produkcyjnego globusa.
@@ -475,6 +555,7 @@ function renderCountryView(cont, country) {
 function renderDealerView(cont, country, index) {
   const d = country.dealers[index];
   const mapSrc = document.getElementById("videoCanvas").getAttribute("final-image");
+  const hasCoords = typeof d.lat === "number" && typeof d.lng === "number";
   const rows = [];
 
   if (d.address) rows.push("<dt>Address</dt><dd>" + dealerEscape(d.address) + "</dd>");
@@ -504,13 +585,15 @@ function renderDealerView(cont, country, index) {
     (rows.length ? '<dl class="dealer-detail">' + rows.join("") + "</dl>" : "") +
     (links.length ? '<div class="dealer-detail__links">' + links.join("") + "</div>" : "") +
 
-    // Zbliżony wycinek mapy idzie POD dane kontaktowe. Na razie pokazuje
-    // region kontynentu — dokładne miejsce dealera wymaga współrzędnych
-    // przeliczalnych na tę grafikę albo osobnego kafla mapy.
-    '<div class="dealer-detail__map" style="background-image:url(&quot;' + dealerEscape(mapSrc) +
-    '&quot;);background-position:' + cont.pos.x + "% " + cont.pos.y + '%">' +
-    '<span class="dealer-detail__crosshair"></span>' +
-    "</div>"
+    // Zbliżona mapa idzie POD dane kontaktowe. Gdy dealer ma współrzędne
+    // (130 ze 133) — interaktywny Mapbox. Gdy nie ma — wycinek grafiki
+    // globalnej wyśrodkowany na kontynencie, żeby coś tam było.
+    (hasCoords
+      ? '<div id="dealerMap" class="dealer-detail__map is-live is-loading"></div>'
+      : '<div class="dealer-detail__map" style="background-image:url(&quot;' + dealerEscape(mapSrc) +
+        '&quot;);background-position:' + cont.pos.x + "% " + cont.pos.y + '%">' +
+        '<span class="dealer-detail__crosshair"></span>' +
+        "</div>")
   );
 }
 
@@ -526,11 +609,18 @@ function renderDealerPanel() {
   const cont = DealerNav.continentId ? findContinent(DealerNav.continentId) : null;
   const country = DealerNav.countryId ? findCountry(cont, DealerNav.countryId) : null;
 
+  // Mapa poprzedniego dealera znika przy każdej zmianie widoku.
+  DealerMap.destroy();
+
   if (DealerNav.view === "dealer" && cont && country) {
+    const dealer = country.dealers[DealerNav.dealerIndex];
     body.innerHTML = renderDealerView(cont, country, DealerNav.dealerIndex);
     crumb.textContent = "All locations › " + cont.name + " › " + country.name;
     back.hidden = false;
     back.setAttribute("aria-label", "Back to " + country.name);
+    if (dealer && typeof dealer.lat === "number" && typeof dealer.lng === "number") {
+      DealerMap.mount(document.getElementById("dealerMap"), dealer.lat, dealer.lng, dealer.name);
+    }
   } else if (DealerNav.view === "country" && cont && country) {
     body.innerHTML = renderCountryView(cont, country);
     crumb.textContent = "All locations › " + cont.name;
@@ -582,6 +672,7 @@ function openDealerPanel(continentId) {
 function closeDealerPanel() {
   const panel = document.getElementById("dealerPanel");
   if (!panel) return;
+  DealerMap.destroy();
   panel.classList.remove("is-open");
   panel.setAttribute("aria-hidden", "true");
 }
