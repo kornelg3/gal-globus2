@@ -375,10 +375,11 @@ const MapPins = (function () {
      Bez konta, bez tokenu, bez karty. ~40 KB biblioteki zamiast ~340 KB
      Mapboxa. To wystarcza do oceny układu i do prototypu.
 
-   • PRODUKCJA: jeśli strona ustawi window.GALEON_MAPBOX_TOKEN, moduł
-     bierze Mapbox GL 3.14.0 ze stylem streets-v12 — dokładnie ten, który
-     galeon.yachts ma dziś w panelu kraju. W Webflow token już tam siedzi,
-     więc przełączenie to jedna linijka, nie przepisywanie.
+   • MAPBOX: gdy token jest dostępny, moduł bierze Mapbox GL 3.14.0 ze
+     stylem streets-v12 — dokładnie ten, który galeon.yachts ma dziś
+     w panelu kraju. W Webflow wystarczy window.GALEON_MAPBOX_TOKEN;
+     w prototypie na GitHub Pages podaje się go raz w adresie
+     (?mbtoken=pk...) — patrz mapboxToken() niżej.
 
    ⚠ CARTO daje darmowy limit 5 mln kafelków/miesiąc i prosi o bezpłatny
      klucz API przy użyciu poza swoją platformą. Klucz jest wpisany niżej.
@@ -429,8 +430,40 @@ const DealerMap = (function () {
   let map = null;       // aktualna instancja mapy
   let kind = null;      // "leaflet" albo "mapbox"
 
+  /* ----------------------------------------------------------
+     mapboxToken() — skad bierzemy token Mapboxa. Trzy zrodla,
+     w tej kolejnosci:
+
+     1. window.GALEON_MAPBOX_TOKEN — ustawione przez strone.
+        Tak to bedzie wygladac w Webflow, gdzie token juz siedzi.
+     2. ?mbtoken=pk... w adresie — do prototypu na GitHub Pages.
+        Token NIE moze lezec w repo (GitHub blokuje push z tokenem
+        Mapboxa), wiec podaje sie go raz w adresie; zapisujemy go
+        w localStorage tej przegladarki i czyscimy adres.
+     3. localStorage — z poprzedniej wizyty.
+
+     Brak tokenu = mapa leci na CARTO i wszystko dziala dalej.
+     Zeby wrocic na CARTO: ?mbtoken= (pusty) albo wyczyscic dane strony.
+     ---------------------------------------------------------- */
+  function mapboxToken() {
+    if (window.GALEON_MAPBOX_TOKEN) return window.GALEON_MAPBOX_TOKEN;
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
+      if (fromUrl !== null) {
+        if (fromUrl) window.localStorage.setItem("galeon_mapbox_token", fromUrl);
+        else window.localStorage.removeItem("galeon_mapbox_token");
+        // token znika z paska adresu — zostaje tylko w tej przegladarce
+        window.history.replaceState(null, "", window.location.pathname);
+        return fromUrl;
+      }
+      return window.localStorage.getItem("galeon_mapbox_token") || "";
+    } catch (e) {
+      return "";   // tryb prywatny albo zablokowane dane stron
+    }
+  }
+
   function useMapbox() {
-    return !!window.GALEON_MAPBOX_TOKEN;
+    return !!mapboxToken();
   }
 
   function loadAssets(cfg) {
@@ -491,7 +524,7 @@ const DealerMap = (function () {
 
   function mountMapbox(el, lat, lng, label) {
     const gl = window.mapboxgl;
-    gl.accessToken = window.GALEON_MAPBOX_TOKEN;
+    gl.accessToken = mapboxToken();
     map = new gl.Map({
       container: el,
       style: MAP_PROVIDER.mapbox.style,
