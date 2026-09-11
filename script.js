@@ -380,11 +380,8 @@ const MapPins = (function () {
      galeon.yachts ma dziś w panelu kraju. W Webflow token już tam siedzi,
      więc przełączenie to jedna linijka, nie przepisywanie.
 
-   ⚠ CARTO daje darmowy limit 5 mln kafelków/miesiąc, ale od niedawna
-     prosi o bezpłatny klucz API przy użyciu poza swoją platformą
-     (carto.com/basemaps/apikey — bez konta i bez karty). Bez klucza
-     kafelki nadal chodzą, więc do prototypu wystarczy; na produkcję
-     albo klucz CARTO, albo wariant Mapbox niżej.
+   ⚠ CARTO daje darmowy limit 5 mln kafelków/miesiąc i prosi o bezpłatny
+     klucz API przy użyciu poza swoją platformą. Klucz jest wpisany niżej.
      Atrybucja CARTO + OpenStreetMap musi zostać widoczna.
 
    Biblioteka dociąga się DOPIERO przy pierwszym wejściu w konkretnego
@@ -409,6 +406,10 @@ const MAP_PROVIDER = {
          https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png
 
        {r} = "@2x" na ekranach retina, {s} = subdomeny a-d (rownolegle pobieranie). */
+    /* Bezplatny klucz CARTO konta Uzytkownika. Jest publiczny z zalozenia —
+       siedzi w adresie kafelka, wiec i tak widac go w Network. Sluzy do
+       przypisania ruchu do konta i limitu 5 mln kafelkow/miesiac. */
+    key: "cb1_2j5u_1_8963591d87edf0203873ecf3",
     tiles: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
     subdomains: "abcd",
     maxZoom: 20,
@@ -466,11 +467,12 @@ const DealerMap = (function () {
       scrollWheelZoom: false,
       zoomControl: true
     });
-    L.tileLayer(MAP_PROVIDER.leaflet.tiles, {
-      subdomains: MAP_PROVIDER.leaflet.subdomains,
-      maxZoom: MAP_PROVIDER.leaflet.maxZoom,
+    const cfg = MAP_PROVIDER.leaflet;
+    L.tileLayer(cfg.tiles + (cfg.key ? "?key=" + cfg.key : ""), {
+      subdomains: cfg.subdomains,
+      maxZoom: cfg.maxZoom,
       detectRetina: true,
-      attribution: MAP_PROVIDER.leaflet.attribution
+      attribution: cfg.attribution
     }).addTo(map);
 
     L.marker([lat, lng], {
