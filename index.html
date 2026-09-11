@@ -3,10 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Galeon Yachts — Virtual Tour</title>
+<title>Galeon Yachts — Dealer network (makieta)</title>
 <meta name="description" content="Step aboard Galeon yachts in immersive 3D. Walk through every deck, discover the details, and experience the craftsmanship before you ever set foot on board." />
 
-<link rel="canonical" href="https://galeonconfigurator.pl/" />
 <meta name="robots" content="noindex, nofollow" />
 
 <meta property="og:type" content="website" />
@@ -527,16 +526,32 @@
       <canvas id="videoCanvas" class="canvas" video-src="wideo-scroll.mp4" video-src-2="vid2.mp4" final-image="map-with-pins.jpg"></canvas>
       <div id="scrollShade" class="canvas_shade"></div>
       <img id="mapImage" class="map-image" src="" alt="" aria-hidden="true" />
+
+      <!-- Klikalne pinezki krajow. Pozycje i rozmiar warstwy ustawia JS
+           (MapPins.layout) tak, zeby pokrywala sie z obrazkiem mapy. -->
+      <div id="mapPins" class="map-pins"></div>
+
       <div class="canvas_gradient"></div>
-      <button id="endButton" class="end-button" type="button" aria-label="Play next animation">
+
+      <button id="endButton" class="end-button" type="button" aria-label="Find a dealer">
         <img src="Buttons.png" alt="" />
       </button>
+
+      <!-- Pasek widoczny dopiero, gdy mapa jest na ekranie. -->
+      <div id="mapToolbar" class="map-toolbar">
+        <button id="backToGlobe" class="map-btn" type="button">&larr; Back to globe</button>
+        <button id="openAllDealers" class="map-btn map-btn--primary" type="button">All dealers</button>
+      </div>
     </div>
   </div>
 
-  <!-- Wysuwany panel z listą dealerów (otwiera klik w mapę z pinami) -->
+  <!-- Wysuwany panel dealerow: kraje &rsaquo; kraj &rsaquo; dealer -->
   <aside id="dealerPanel" class="dealer-panel" aria-hidden="true" aria-label="Dealer locations">
-    <button id="dealerPanelClose" class="dealer-panel__close" type="button" aria-label="Close">×</button>
+    <div class="dealer-panel__bar">
+      <button id="dealerPanelBack" class="dealer-panel__back" type="button" hidden>&larr; Back</button>
+      <span id="dealerPanelCrumb" class="dealer-panel__crumb"></span>
+      <button id="dealerPanelClose" class="dealer-panel__close" type="button" aria-label="Close">&times;</button>
+    </div>
     <div id="dealerPanelBody" class="dealer-panel__body"></div>
   </aside>
 

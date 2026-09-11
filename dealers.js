@@ -1,254 +1,385 @@
-/* Publiczne dane dealerow: tylko kraj i nazwa. */
+/* ============================================================
+   DANE DEALEROW — makieta.
+
+   Struktura: kraj -> lista dealerow. Trzy poziomy nawigacji
+   w panelu (wszyscy -> kraj -> dealer) czytaja wylacznie stad.
+
+   pos.x / pos.y  = pozycja pinezki kraju na map-with-pins.jpg,
+                    w procentach szerokosci / wysokosci obrazka.
+                    Ustawione RECZNIE (mapka nie ma potwierdzonego
+                    rzutu, wiec nie liczymy ich wzorem).
+
+   UWAGA: telefon, e-mail i adres to dane zastepcze generowane
+   w script.js (buildPlaceholderContact). W zrodle ich nie ma —
+   lista wejsciowa zawierala wylacznie kraj + nazwe.
+   ============================================================ */
+
+window.DEALERS_CONTACT_IS_PLACEHOLDER = true;
+
 window.DEALERS = [
   {
-    "country": "Galeon Canada",
+    "id": "US",
+    "country": "USA",
+    "pos": {
+      "x": 15.3,
+      "y": 37.5
+    },
     "dealers": [
       {
-        "name": "Freedom Marine International Yacht Sales"
+        "name": "MarineMax Islamorada",
+        "city": "Islamorada"
       },
       {
-        "name": "Freedom Marine International Yacht Sales"
+        "name": "MarineMax Jupiter",
+        "city": "Jupiter"
       },
       {
-        "name": "Marine 360"
+        "name": "MarineMax Miami",
+        "city": "Miami"
+      },
+      {
+        "name": "MarineMax Marathon",
+        "city": "Marathon"
+      },
+      {
+        "name": "MarineMax Fort Myers",
+        "city": "Fort Myers"
+      },
+      {
+        "name": "MarineMax Yacht Center",
+        "city": ""
+      },
+      {
+        "name": "MarineMax Sarasota",
+        "city": "Sarasota"
+      },
+      {
+        "name": "MarineMax Clearwater",
+        "city": "Clearwater"
+      },
+      {
+        "name": "MarineMax Naples",
+        "city": "Naples"
+      },
+      {
+        "name": "MarineMax Palm Beach at PGA Marina",
+        "city": "Palm Beach at PGA Marina"
+      },
+      {
+        "name": "MarineMax St. Petersburg",
+        "city": "St. Petersburg"
+      },
+      {
+        "name": "MarineMax Pompano",
+        "city": "Pompano"
+      },
+      {
+        "name": "MarineMax Ocean Reef",
+        "city": "Ocean Reef"
+      },
+      {
+        "name": "MarineMax Stuart",
+        "city": "Stuart"
+      },
+      {
+        "name": "MarineMax Venice",
+        "city": "Venice"
+      },
+      {
+        "name": "MarineMax Pensacola",
+        "city": "Pensacola"
+      },
+      {
+        "name": "MarineMax Jacksonville",
+        "city": "Jacksonville"
+      },
+      {
+        "name": "MarineMax Cocoa",
+        "city": "Cocoa"
+      },
+      {
+        "name": "MarineMax Panama City",
+        "city": "Panama City"
+      },
+      {
+        "name": "MarineMax Lake Lanier",
+        "city": "Lake Lanier"
+      },
+      {
+        "name": "MarineMax Norwalk",
+        "city": "Norwalk"
+      },
+      {
+        "name": "MarineMax Kent Island",
+        "city": "Kent Island"
+      },
+      {
+        "name": "MarineMax Lake Hopatcong",
+        "city": "Lake Hopatcong"
+      },
+      {
+        "name": "MarineMax Westbrook",
+        "city": "Westbrook"
+      },
+      {
+        "name": "MarineMax West Palm Beach",
+        "city": "West Palm Beach"
+      },
+      {
+        "name": "Silver Seas Yachts",
+        "city": ""
+      },
+      {
+        "name": "Silver Seas Yachts",
+        "city": ""
+      },
+      {
+        "name": "Silver Seas Yachts",
+        "city": ""
+      },
+      {
+        "name": "Silver Seas Yachts",
+        "city": ""
+      },
+      {
+        "name": "Skipper Bud’s Grand Haven, MI",
+        "city": "Grand Haven, MI"
+      },
+      {
+        "name": "SkipperBud’s Harrison Township, MI",
+        "city": "Harrison Township, MI"
+      },
+      {
+        "name": "SkipperBud’s Winthrop Harbor, IL",
+        "city": "Winthrop Harbor, IL"
+      },
+      {
+        "name": "SkipperBud’s Marblehead, OH",
+        "city": "Marblehead, OH"
+      },
+      {
+        "name": "SkipperBud’s, Pewaukee, WI",
+        "city": "Pewaukee, WI"
+      },
+      {
+        "name": "SkipperBud’s, Sturgeon Bay, WI",
+        "city": "Sturgeon Bay, WI"
+      },
+      {
+        "name": "MarineMax Fort Walton Beach",
+        "city": "Fort Walton Beach"
+      },
+      {
+        "name": "MarineMax Savannah",
+        "city": "Savannah"
+      },
+      {
+        "name": "MarineMax Danvers",
+        "city": "Danvers"
+      },
+      {
+        "name": "MarineMax Boston",
+        "city": "Boston"
+      },
+      {
+        "name": "MarineMax Excelsior",
+        "city": "Excelsior"
+      },
+      {
+        "name": "MarineMax Rogers",
+        "city": "Rogers"
+      },
+      {
+        "name": "MarineMax Lake Ozark",
+        "city": "Lake Ozark"
+      },
+      {
+        "name": "MarineMax Osage Beach",
+        "city": "Osage Beach"
+      },
+      {
+        "name": "MarineMax Lake Norman",
+        "city": "Lake Norman"
+      },
+      {
+        "name": "MarineMax Wrightsville Beach",
+        "city": "Wrightsville Beach"
+      },
+      {
+        "name": "MarineMax Brick",
+        "city": "Brick"
+      },
+      {
+        "name": "MarineMax Ocean View",
+        "city": "Ocean View"
+      },
+      {
+        "name": "MarineMax Somers Point",
+        "city": "Somers Point"
+      },
+      {
+        "name": "MarineMax Huntington",
+        "city": "Huntington"
+      },
+      {
+        "name": "MarineMax Grand Lake",
+        "city": "Grand Lake"
+      },
+      {
+        "name": "MarineMax Newport",
+        "city": "Newport"
+      },
+      {
+        "name": "MarineMax Wakefield",
+        "city": "Wakefield"
+      },
+      {
+        "name": "MarineMax Charleston",
+        "city": "Charleston"
+      },
+      {
+        "name": "MarineMax Greenville",
+        "city": "Greenville"
+      },
+      {
+        "name": "MarineMax Lake Wylie",
+        "city": "Lake Wylie"
+      },
+      {
+        "name": "MarineMax Dallas",
+        "city": "Dallas"
+      },
+      {
+        "name": "MarineMax Dallas Yacht Center",
+        "city": "Dallas Yacht Center"
+      },
+      {
+        "name": "MarineMax Houston",
+        "city": "Houston"
+      },
+      {
+        "name": "Prince William Marina",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon Costa Rica ",
+    "id": "CA",
+    "country": "Canada",
+    "pos": {
+      "x": 14.3,
+      "y": 21.8
+    },
     "dealers": [
       {
-        "name": "Maspor Marine"
+        "name": "Freedom Marine International Yacht Sales",
+        "city": ""
+      },
+      {
+        "name": "Freedom Marine International Yacht Sales",
+        "city": ""
+      },
+      {
+        "name": "Marine 360",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon El Salvador",
+    "id": "CR",
+    "country": "Costa Rica",
+    "pos": {
+      "x": 14.2,
+      "y": 50.5
+    },
     "dealers": [
       {
-        "name": "Maspor Marine"
+        "name": "Maspor Marine",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon Guatemala",
+    "id": "SV",
+    "country": "El Salvador",
+    "pos": {
+      "x": 12.5,
+      "y": 48.7
+    },
     "dealers": [
       {
-        "name": "Maspor Marine"
+        "name": "Maspor Marine",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon Honduras",
+    "id": "GT",
+    "country": "Guatemala",
+    "pos": {
+      "x": 12.2,
+      "y": 47.5
+    },
     "dealers": [
       {
-        "name": "Maspor Marine"
+        "name": "Maspor Marine",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon Mexico",
+    "id": "HN",
+    "country": "Honduras",
+    "pos": {
+      "x": 13.1,
+      "y": 47.4
+    },
     "dealers": [
       {
-        "name": "Camino Al Mare"
+        "name": "Maspor Marine",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon Nicaragua",
+    "id": "MX",
+    "country": "Mexico",
+    "pos": {
+      "x": 13.1,
+      "y": 43.6
+    },
     "dealers": [
       {
-        "name": "Maspor Marine"
+        "name": "Camino Al Mare",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon PANAMÁ",
+    "id": "NI",
+    "country": "Nicaragua",
+    "pos": {
+      "x": 13.7,
+      "y": 49.2
+    },
     "dealers": [
       {
-        "name": "Maspor Marine"
+        "name": "Maspor Marine",
+        "city": ""
       }
     ]
   },
   {
-    "country": "Galeon USA",
+    "id": "PA",
+    "country": "Panama",
+    "pos": {
+      "x": 15.5,
+      "y": 51.2
+    },
     "dealers": [
       {
-        "name": "MarineMax Islamorada"
-      },
-      {
-        "name": "MarineMax Jupiter"
-      },
-      {
-        "name": "MarineMax Miami"
-      },
-      {
-        "name": "MarineMax Marathon"
-      },
-      {
-        "name": "MarineMax Fort Myers"
-      },
-      {
-        "name": "MarineMax Yacht Center"
-      },
-      {
-        "name": "MarineMax Sarasota"
-      },
-      {
-        "name": "MarineMax Clearwater"
-      },
-      {
-        "name": "MarineMax Naples"
-      },
-      {
-        "name": "MarineMax Palm Beach at PGA Marina"
-      },
-      {
-        "name": "MarineMax St. Petersburg"
-      },
-      {
-        "name": "MarineMax Pompano"
-      },
-      {
-        "name": "MarineMax Ocean Reef"
-      },
-      {
-        "name": "MarineMax Stuart"
-      },
-      {
-        "name": "MarineMax Venice"
-      },
-      {
-        "name": "MarineMax Pensacola"
-      },
-      {
-        "name": "MarineMax Jacksonville"
-      },
-      {
-        "name": "MarineMax Cocoa"
-      },
-      {
-        "name": "MarineMax Panama City"
-      },
-      {
-        "name": "MarineMax Lake Lanier"
-      },
-      {
-        "name": "MarineMax Norwalk"
-      },
-      {
-        "name": "MarineMax Kent Island"
-      },
-      {
-        "name": "MarineMax Lake Hopatcong"
-      },
-      {
-        "name": "MarineMax Westbrook"
-      },
-      {
-        "name": "MarineMax West Palm Beach"
-      },
-      {
-        "name": "Silver Seas Yachts"
-      },
-      {
-        "name": "Silver Seas Yachts"
-      },
-      {
-        "name": "Silver Seas Yachts"
-      },
-      {
-        "name": "Silver Seas Yachts"
-      },
-      {
-        "name": "Skipper Bud’s Grand Haven, MI"
-      },
-      {
-        "name": "SkipperBud’s Harrison Township, MI"
-      },
-      {
-        "name": "SkipperBud’s Winthrop Harbor, IL"
-      },
-      {
-        "name": "SkipperBud’s Marblehead, OH"
-      },
-      {
-        "name": "SkipperBud’s, Pewaukee, WI"
-      },
-      {
-        "name": "SkipperBud’s, Sturgeon Bay, WI"
-      },
-      {
-        "name": "MarineMax Fort Walton Beach"
-      },
-      {
-        "name": "MarineMax Savannah"
-      },
-      {
-        "name": "MarineMax Danvers"
-      },
-      {
-        "name": "MarineMax Boston"
-      },
-      {
-        "name": "MarineMax Excelsior"
-      },
-      {
-        "name": "MarineMax Rogers"
-      },
-      {
-        "name": "MarineMax Lake Ozark"
-      },
-      {
-        "name": "MarineMax Osage Beach"
-      },
-      {
-        "name": "MarineMax Lake Norman"
-      },
-      {
-        "name": "MarineMax Wrightsville Beach"
-      },
-      {
-        "name": "MarineMax Brick"
-      },
-      {
-        "name": "MarineMax Ocean View"
-      },
-      {
-        "name": "MarineMax Somers Point"
-      },
-      {
-        "name": "MarineMax Huntington"
-      },
-      {
-        "name": "MarineMax Grand Lake"
-      },
-      {
-        "name": "MarineMax Newport"
-      },
-      {
-        "name": "MarineMax Wakefield"
-      },
-      {
-        "name": "MarineMax Charleston"
-      },
-      {
-        "name": "MarineMax Greenville"
-      },
-      {
-        "name": "MarineMax Lake Wylie"
-      },
-      {
-        "name": "MarineMax Dallas"
-      },
-      {
-        "name": "MarineMax Dallas Yacht Center"
-      },
-      {
-        "name": "MarineMax Houston"
-      },
-      {
-        "name": "Prince William Marina"
+        "name": "Maspor Marine",
+        "city": ""
       }
     ]
   }
