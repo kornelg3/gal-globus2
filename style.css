@@ -199,7 +199,7 @@ html, body {
 }
 
 /* ============================================================
-   PASEK POD MAPĄ — powrót do globusa + wejście w pełną listę
+   PASEK POD MAPĄ — zamknięcie mapy + wejście w listę dealerów
    ============================================================ */
 .map-toolbar {
   position: absolute;
@@ -219,29 +219,41 @@ html, body {
   pointer-events: auto;
 }
 
+/* Button 1:1 z buttonami na galeon.yachts: pigulka, wersaliki,
+   wieksza czcionka i szeroki oddech po bokach. Wariant primary =
+   granatowe wypelnienie, ghost = biala pigulka z granatowym tekstem. */
 .map-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.7rem 1.4rem;
-  border: 1px solid rgba(255, 255, 255, 0.28);
+  justify-content: center;
+  min-width: 11rem;
+  padding: 1.05rem 2.5rem;
+  border: 0;
   border-radius: 999px;
-  background: rgba(8, 24, 38, 0.6);
-  backdrop-filter: blur(8px);
-  color: #fff;
   font-family: "Galanogrotesque", "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.7rem;
-  font-weight: 500;
-  letter-spacing: 0.16em;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.3s ease, border-color 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease, transform 0.3s var(--ease);
 }
-.map-btn:hover {
-  background: rgba(47, 127, 181, 0.75);
-  border-color: rgba(255, 255, 255, 0.5);
+.map-btn:hover { transform: translateY(-2px); }
+
+/* glowna akcja — granatowa pigulka, jak "FIND A DEALER" na stronie */
+.map-btn--primary {
+  background: #1f4a73;
+  color: #fff;
 }
-.map-btn--primary { background: rgba(47, 127, 181, 0.6); }
+.map-btn--primary:hover { background: #2a5d8d; }
+
+/* akcja drugorzedna — biala pigulka, jak "YACHTS" na stronie */
+.map-btn--ghost {
+  background: #ffffff;
+  color: #12293d;
+}
+.map-btn--ghost:hover { background: #eef2f5; }
 
 /* ============================================================
    PANEL DEALERÓW — trzy poziomy: kraje › kraj › dealer

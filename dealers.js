@@ -21,8 +21,8 @@ window.DEALERS = [
     "id": "US",
     "country": "USA",
     "pos": {
-      "x": 15.3,
-      "y": 37.5
+      "x": 13.16,
+      "y": 32.74
     },
     "dealers": [
       {
@@ -267,8 +267,8 @@ window.DEALERS = [
     "id": "CA",
     "country": "Canada",
     "pos": {
-      "x": 14.3,
-      "y": 21.8
+      "x": 13.16,
+      "y": 20.75
     },
     "dealers": [
       {
@@ -289,8 +289,8 @@ window.DEALERS = [
     "id": "CR",
     "country": "Costa Rica",
     "pos": {
-      "x": 14.2,
-      "y": 50.5
+      "x": 14.73,
+      "y": 50.28
     },
     "dealers": [
       {
@@ -303,8 +303,8 @@ window.DEALERS = [
     "id": "SV",
     "country": "El Salvador",
     "pos": {
-      "x": 12.5,
-      "y": 48.7
+      "x": 13.08,
+      "y": 48.17
     },
     "dealers": [
       {
@@ -317,8 +317,8 @@ window.DEALERS = [
     "id": "GT",
     "country": "Guatemala",
     "pos": {
-      "x": 12.2,
-      "y": 47.5
+      "x": 12.58,
+      "y": 47.52
     },
     "dealers": [
       {
@@ -331,8 +331,8 @@ window.DEALERS = [
     "id": "HN",
     "country": "Honduras",
     "pos": {
-      "x": 13.1,
-      "y": 47.4
+      "x": 13.62,
+      "y": 47.53
     },
     "dealers": [
       {
@@ -345,8 +345,8 @@ window.DEALERS = [
     "id": "MX",
     "country": "Mexico",
     "pos": {
-      "x": 13.1,
-      "y": 43.6
+      "x": 9.72,
+      "y": 44.62
     },
     "dealers": [
       {
@@ -359,8 +359,8 @@ window.DEALERS = [
     "id": "NI",
     "country": "Nicaragua",
     "pos": {
-      "x": 13.7,
-      "y": 49.2
+      "x": 14.32,
+      "y": 48.96
     },
     "dealers": [
       {
@@ -373,8 +373,8 @@ window.DEALERS = [
     "id": "PA",
     "country": "Panama",
     "pos": {
-      "x": 15.5,
-      "y": 51.2
+      "x": 15.68,
+      "y": 51.21
     },
     "dealers": [
       {

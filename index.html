@@ -375,20 +375,19 @@
     max-width: 32rem;
   }
 
-  /* ---- Button na końcu scroll-wideo ---- */
+  /* ---- Button na końcu scroll-wideo ----
+     Wyglad dziedziczy po .map-btn--primary (style.css) — ten sam ksztalt,
+     rozmiar czcionki i oddech co buttony na galeon.yachts. Tutaj zostaje
+     wylacznie pozycjonowanie i logika pokazywania. */
   .end-button {
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) scale(0.96);
     z-index: 20;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    cursor: pointer;
     opacity: 0;
-    pointer-events: none;            /* nieklikalny dopóki ukryty */
-    transition: opacity 0.6s var(--ease), transform 0.6s var(--ease), filter 0.3s var(--ease);
+    pointer-events: none;            /* nieklikalny dopoki ukryty */
+    transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
   }
 
   .end-button.is-visible {
@@ -397,17 +396,9 @@
     pointer-events: auto;
   }
 
-  .end-button img {
-    display: block;
-    width: auto;
-    height: auto;
-    pointer-events: none;
-  }
-
-  /* delikatny hover */
+  /* hover nie moze nadpisac wysrodkowania (translate -50%/-50%) */
   .end-button.is-visible:hover {
-    transform: translate(-50%, -50%) scale(1.05);
-    filter: brightness(1.08);
+    transform: translate(-50%, -50%) scale(1.04);
   }
 
   @keyframes fadeUp {
@@ -533,14 +524,12 @@
 
       <div class="canvas_gradient"></div>
 
-      <button id="endButton" class="end-button" type="button" aria-label="Find a dealer">
-        <img src="Buttons.png" alt="" />
-      </button>
+      <button id="endButton" class="end-button map-btn map-btn--primary" type="button">Find a dealer</button>
 
       <!-- Pasek widoczny dopiero, gdy mapa jest na ekranie. -->
       <div id="mapToolbar" class="map-toolbar">
-        <button id="backToGlobe" class="map-btn" type="button">&larr; Back to globe</button>
-        <button id="openAllDealers" class="map-btn map-btn--primary" type="button">All dealers</button>
+        <button id="backToGlobe" class="map-btn map-btn--ghost" type="button">Close map</button>
+        <button id="openAllDealers" class="map-btn map-btn--primary" type="button">Find a dealer</button>
       </div>
     </div>
   </div>
