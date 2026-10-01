@@ -210,6 +210,18 @@ function initScrollVideo() {
      włączamy warstwę klikalnych pinezek krajów i button powrotu.
      ---------------------------------------------------------- */
   function showFinalImage() {
+    // Wariant /mapbox/: zamiast grafiki wchodzi interaktywny globus Mapboxa
+    // (globe-map.js). Bez tego pliku na stronie — zachowanie bez zmian.
+    if (window.GlobeMap && window.GlobeMap.enabled()) {
+      window.GlobeMap.show(function (el) {
+        finalImage = el;
+        const shade = document.getElementById("scrollShade");
+        if (shade) shade.classList.add("is-hidden");
+        if (mapToolbar) mapToolbar.classList.add("is-visible");
+      });
+      return;
+    }
+
     const imgSrc = canvas.getAttribute("final-image");
     const mapImage = document.getElementById("mapImage");
     if (!imgSrc || !mapImage) return;
@@ -238,6 +250,7 @@ function initScrollVideo() {
 
     closeDealerPanel();
     MapPins.unmount();
+    if (window.GlobeMap) window.GlobeMap.hide();
     if (mapToolbar) mapToolbar.classList.remove("is-visible");
     if (mapImage) mapImage.classList.remove("is-visible");
     if (shade) shade.classList.remove("is-hidden");
