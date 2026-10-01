@@ -21,7 +21,7 @@ window.GlobeMap = (function () {
   };
   const STYLE = "mapbox://styles/kornelg3/cmup5zrur005w01skdjanduen";
   // Kadr startowy: Europa z bliska, jak na map-with-pins.jpg.
-  const START = { center: [14, 44], zoom: 2.7 };
+  const START = { center: [14, 46], zoom: 3.2 };
 
   // Srodki kontynentow [lng, lat] — tylko do pinezek, nie do danych.
   const CONTINENT_LNGLAT = {
