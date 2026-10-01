@@ -234,6 +234,9 @@ function initScrollVideo() {
     // Gdy druga animacja ruszyła albo mapa jest na ekranie — ekran końcowy znika.
     if (playingSecond || finalImage) show = false;
     endCta.classList.toggle("is-visible", show);
+    // Wariant /mapbox/: button widoczny = w tle sam plik biblioteki
+    // (bez tworzenia mapy, wiec bez platnego wczytania) — B5.
+    if (show && window.GlobeMap && window.GlobeMap.enabled()) window.GlobeMap.prefetch();
   }
 
   /* ----------------------------------------------------------
@@ -244,6 +247,8 @@ function initScrollVideo() {
     if (playingSecond || !videoSrc2) return;
     playingSecond = true;
     toggleEndButton(false);
+    // Wariant /mapbox/: mapa szykuje sie w tle, rownolegle z animacja.
+    if (window.GlobeMap && window.GlobeMap.enabled()) window.GlobeMap.prepare().catch(function () {});
 
     const video2 = document.createElement("video");
     video2.muted = true;

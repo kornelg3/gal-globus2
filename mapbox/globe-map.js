@@ -401,40 +401,67 @@ window.GlobeMap = (function () {
     map.fitBounds(b, { padding: padding(withPanel), maxZoom: 5, duration: 1400 });
   }
 
+  /* Ladowanie w trzech krokach, zeby nie czekac po kolei:
+       prefetch() — sam plik biblioteki (gdy pojawia sie button
+                    "Find a dealer"); NIE tworzy mapy, wiec nie nabija
+                    wczytan w Mapboxie,
+       prepare()  — tworzy mape w tle (klik w button, rownolegle
+                    z druga animacja); to jest wczytanie platne,
+       show()     — po animacji: pokazuje mape, gdy jest gotowa. */
+  let ready = null;   // Promise: mapa utworzona i po "load"
+
+  function prefetch() {
+    if (token) loadLib().catch(function () {});
+  }
+
+  function prepare() {
+    if (ready) return ready;
+    const el = document.getElementById("globeMap");
+    if (!el) return Promise.reject();
+    ready = loadLib().then(function () {
+      return new Promise(function (resolve) {
+        window.mapboxgl.accessToken = token;
+        map = new window.mapboxgl.Map({
+          container: el,
+          style: STYLE,
+          center: start().center,
+          zoom: start().zoom,
+          attributionControl: true
+        });
+        map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+        const chip = document.getElementById("globeBack");
+        if (chip) chip.addEventListener("click", function () {
+          dealerGoTo("continents", { continentId: null, countryId: null });
+        });
+        map.on("click", pickNearestPin);
+        map.once("load", function () {
+          addHighlightLayers();
+          addMarkers();
+          resolve(map);
+        });
+      });
+    });
+    ready.catch(function () {
+      ready = null;
+      console.warn("[GlobeMap] Nie udalo sie wczytac Mapbox GL.");
+    });
+    return ready;
+  }
+
+  let shownOnce = false;
   function show(onReady) {
     const el = document.getElementById("globeMap");
     if (!el) return;
-    loadLib().then(function () {
-      if (map) {             // drugi raz po "Close map" — mapa juz jest
+    prepare().then(function () {
+      if (shownOnce) {       // drugi raz po "Close map" — mapa juz jest
         sync(null);
         map.jumpTo(start());
-        el.classList.add("is-visible");
-        onReady(el);
-        return;
       }
-      window.mapboxgl.accessToken = token;
-      map = new window.mapboxgl.Map({
-        container: el,
-        style: STYLE,
-        center: start().center,
-        zoom: start().zoom,
-        attributionControl: true
-      });
-      map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-      const chip = document.getElementById("globeBack");
-      if (chip) chip.addEventListener("click", function () {
-        dealerGoTo("continents", { continentId: null, countryId: null });
-      });
-      map.on("click", pickNearestPin);
-      map.once("load", function () {
-        addHighlightLayers();
-        addMarkers();
-        el.classList.add("is-visible");
-        onReady(el);
-      });
-    }).catch(function () {
-      console.warn("[GlobeMap] Nie udalo sie wczytac Mapbox GL.");
-    });
+      shownOnce = true;
+      map.resize();          // kontener mogl zmienic rozmiar, gdy mapa byla ukryta
+      el.classList.add("is-visible");
+      onReady(el);
+    }).catch(function () {});
   }
 
   function hide() {
@@ -444,6 +471,8 @@ window.GlobeMap = (function () {
 
   return {
     enabled: function () { return !!token; },
+    prefetch: prefetch,
+    prepare: prepare,
     show: show,
     hide: hide,
     sync: sync,
