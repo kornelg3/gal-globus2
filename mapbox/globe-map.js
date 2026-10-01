@@ -210,6 +210,107 @@ window.GlobeMap = (function () {
     return true;
   }
 
+  /* PODSWIETLENIE wybranego kontynentu / kraju — delikatne wypelnienie
+     + jasniejsza granica. Obrysy z darmowego tilesetu Mapbox Countries
+     (mapbox.country-boundaries-v1): kafelki w ramach tego samego
+     wczytania mapy, bez dodatkowych kosztow. */
+  const ISO = {
+    "austria": "AT", "belgium": "BE", "bulgaria": "BG", "croatia": "HR", "cyprus": "CY",
+    "czech-republic": "CZ", "denmark": "DK", "finland": "FI", "france": "FR", "germany": "DE",
+    "greece": "GR", "hungary": "HU", "italy": "IT", "latvia": "LV", "lithuania": "LT",
+    "luxemburg": "LU", "malta": "MT", "monaco": "MC", "montenegro": "ME", "nederland": "NL",
+    "norway": "NO", "poland": "PL", "portugal": "PT", "serbia": "RS", "slovakia": "SK",
+    "slovenia": "SI", "spain": "ES", "sweden": "SE", "switzerland": "CH", "ukraine": "UA",
+    "united-kingdom": "GB", "canada": "CA", "usa": "US", "guatemala": "GT", "honduras": "HN",
+    "nicaragua": "NI", "panama": "PA", "mexico": "MX", "bahrain": "BH", "cambodia": "KH",
+    "china": "CN", "hong-kong": "HK", "indonesia": "ID", "israel": "IL", "japan": "JP",
+    "jordan": "JO", "kazakhstan": "KZ", "kingdom-of-saudi-arabia": "SA", "korea": "KR",
+    "kuwait": "KW", "lebanon": "LB", "oman": "OM", "philippines": "PH", "qatar": "QA",
+    "singapore": "SG", "taiwan": "TW", "thailand": "TH", "turkey": "TR",
+    "united-arab-emirates": "AE", "uae": "AE", "vietnam": "VN", "egypt": "EG", "morocco": "MA",
+    "seychelles": "SC", "australia": "AU", "new-zealand": "NZ"
+  };
+  // Ameryka Srodkowa + Karaiby (w danych Mapboxa to jeden subregion
+  // "Latin America and the Caribbean" razem z Ameryka Poludniowa).
+  const CENTRAL_AM_ISO = ["MX", "BZ", "GT", "SV", "HN", "NI", "CR", "PA", "CU", "JM", "HT", "DO",
+    "PR", "BS", "BB", "TT", "AG", "DM", "GD", "KN", "LC", "VC", "KY", "TC", "VG", "VI", "AW",
+    "CW", "SX", "BQ", "MF", "BL", "GP", "MQ", "AI", "MS"];
+  const ISO_PROP = ["get", "iso_3166_1"];
+  const REGION = {
+    // Rosja jest u ONZ w Europie — bez wykluczenia swieci sie cala Syberia.
+    "europe": ["all", ["==", ["get", "region"], "Europe"], ["!=", ISO_PROP, "RU"]],
+    "asia": ["==", ["get", "region"], "Asia"],
+    "africa": ["==", ["get", "region"], "Africa"],
+    "australia": ["==", ["get", "region"], "Oceania"],
+    "north-america": ["==", ["get", "subregion"], "Northern America"],
+    "central-america": ["in", ISO_PROP, ["literal", CENTRAL_AM_ISO]],
+    "south-america": ["all", ["==", ["get", "subregion"], "Latin America and the Caribbean"],
+      ["!", ["in", ISO_PROP, ["literal", CENTRAL_AM_ISO]]]]
+  };
+  // Tylko oficjalne granice, w wersji dla odbiorcy "US"/"all" (bez dublowania).
+  const BASE_FILTER = ["all", ["==", ["get", "disputed"], "false"],
+    ["any", ["==", "all", ["get", "worldview"]], ["in", "US", ["get", "worldview"]]]];
+
+  function continentIsos(contId) {
+    const cont = (window.DEALERS || []).find(function (c) { return c.id === contId; });
+    return cont ? (cont.countries || []).map(function (c) { return ISO[c.id]; }).filter(Boolean) : [];
+  }
+
+  /* Kontynent = jego region ze swiata + nasze kraje przypisane do niego
+     (np. Cypr jest u nas w Europie, u ONZ w Azji), minus nasze kraje
+     przypisane gdzie indziej. */
+  function highlightFilter(contId, countryId) {
+    if (countryId) return ["all", BASE_FILTER, ["==", ISO_PROP, ISO[countryId] || "--"]];
+    if (!contId || !REGION[contId]) return ["==", "1", "0"];
+    const own = continentIsos(contId);
+    let other = [];
+    (window.DEALERS || []).forEach(function (c) { if (c.id !== contId) other = other.concat(continentIsos(c.id)); });
+    return ["all", BASE_FILTER, ["any",
+      ["in", ISO_PROP, ["literal", own]],
+      ["all", REGION[contId], ["!", ["in", ISO_PROP, ["literal", other]]]]]];
+  }
+
+  function addHighlightLayers() {
+    // Nazwa "hl-countries": styl na koncie ma juz wlasne zrodlo "countries".
+    map.addSource("hl-countries", { type: "vector", url: "mapbox://mapbox.country-boundaries-v1" });
+    // Pod etykietami stylu — nazwy miast i krajow zostaja czytelne.
+    const firstSymbol = (map.getStyle().layers || []).find(function (l) { return l.type === "symbol"; });
+    const before = firstSymbol ? firstSymbol.id : undefined;
+    map.addLayer({ id: "hl-fill", type: "fill", source: "hl-countries", "source-layer": "country_boundaries",
+      filter: ["==", "1", "0"],
+      paint: { "fill-color": "#8fd0ff", "fill-opacity": 0.1 } }, before);
+    map.addLayer({ id: "hl-line", type: "line", source: "hl-countries", "source-layer": "country_boundaries",
+      filter: ["==", "1", "0"],
+      paint: { "line-color": "#b5e0ff", "line-opacity": 0.55, "line-width": 1.2 } }, before);
+  }
+
+  function setHighlight(contId, countryId) {
+    if (!map || !map.getLayer("hl-fill")) return;
+    const f = highlightFilter(contId, countryId);
+    map.setFilter("hl-fill", f);
+    map.setFilter("hl-line", f);
+  }
+
+  /* Palec trafia obok kropki — klik w mape (nie w pinezke) wybiera
+     NAJBLIZSZA widoczna pinezke w promieniu HIT_RADIUS px. Lepsze niz
+     powiekszanie obszarow: przy gestych pinezkach wygrywa najblizsza,
+     a nie ta, ktora lezy wyzej w DOM. */
+  const HIT_RADIUS = 30;
+  function pickNearestPin(e) {
+    // Trafienie prosto w pinezke obsluguje jej wlasny listener.
+    const t = e.originalEvent && e.originalEvent.target;
+    if (t && t.closest && t.closest(".globe-pin")) return;
+    let best = null;
+    let bestD = HIT_RADIUS;
+    markers.forEach(function (m) {
+      if (m.el.style.display === "none") return;
+      const p = map.project(m.marker.getLngLat());
+      const d = Math.hypot(p.x - e.point.x, p.y - e.point.y);
+      if (d < bestD) { bestD = d; best = m; }
+    });
+    if (best) best.el.click();
+  }
+
   let shownKey = "";
 
   /* sync(nav) — wolane przez panel przy kazdej zmianie widoku.
@@ -241,6 +342,8 @@ window.GlobeMap = (function () {
       const btn = m.el.firstChild;
       if (btn) btn.classList.toggle("is-active", m.kind === "dealer" && m.countryId === countryId && m.index === dealerIdx);
     });
+
+    setHighlight(contId, countryId);
 
     const key = [contId, countryId, dealerIdx].join("|");
     if (key === shownKey) return;
@@ -295,7 +398,9 @@ window.GlobeMap = (function () {
       if (chip) chip.addEventListener("click", function () {
         dealerGoTo("continents", { continentId: null, countryId: null });
       });
+      map.on("click", pickNearestPin);
       map.once("load", function () {
+        addHighlightLayers();
         addMarkers();
         el.classList.add("is-visible");
         onReady(el);

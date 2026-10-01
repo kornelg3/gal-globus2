@@ -463,6 +463,12 @@
   /* Telefon: panel dealerow jako arkusz od dolu, mapa zostaje widoczna
      nad nim. aside.* — wygrywa z regulami .dealer-panel w style.css. */
   .globe-back { display: none; }
+
+  /* Dotyk: niewidoczna etykieta pinezki nie moze lapac klikniec —
+     w gestej Europie zaslanialaby sasiednie kropki. */
+  @media (hover: none) {
+    .globe-pin .map-pin__label { pointer-events: none; }
+  }
   @media (max-width: 860px) {
     aside.dealer-panel {
       top: auto;
