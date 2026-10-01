@@ -23,7 +23,49 @@ window.GlobeMap = (function () {
   };
   const STYLE = "mapbox://styles/kornelg3/cmup5zrur005w01skdjanduen";
   // Kadr startowy: Europa z bliska, jak na map-with-pins.jpg.
+  // Na telefonie ten sam zoom pokazuje wycinek Europy — tam z daleka.
   const START = { center: [14, 46], zoom: 3.2 };
+  const START_MOBILE = { center: [14, 46], zoom: 1.7 };
+
+  /* Telefon (szerokosc panelu 100vw): panel wysuwa sie od dolu i dopiero
+     po wyborze KRAJU. Klik w kontynent tylko przybliza mape i pokazuje
+     pinezki krajow — lista nie zaslania mapy. */
+  const mobileMQ = window.matchMedia("(max-width: 860px)");
+  function isMobile() { return mobileMQ.matches; }
+  function start() {
+    const base = isMobile() ? START_MOBILE : START;
+    const cont = continentFromTimezone();
+    const ll = cont && cont !== "europe" ? CONTINENT_LNGLAT[cont] : null;
+    return ll ? { center: ll, zoom: base.zoom } : base;
+  }
+
+  /* Kontynent startowy ze strefy czasowej urzadzenia (np. "Europe/Warsaw").
+     Bez pytania o zgode i bez zadnego zapytania do sieci — przegladarka
+     zna strefe sama. Dokladnosc: kontynent. Nieznana strefa → Europa. */
+  const SOUTH_AM = /^America\/(Argentina|Sao_Paulo|Santiago|Bogota|Lima|Caracas|Montevideo|Asuncion|La_Paz|Guayaquil|Cayenne|Paramaribo|Guyana|Recife|Fortaleza|Belem|Manaus|Bahia|Maceio|Cuiaba|Campo_Grande|Porto_Velho|Boa_Vista|Rio_Branco|Araguaina|Santarem|Noronha|Punta_Arenas)/;
+  const CENTRAL_AM = /^America\/(Guatemala|Belize|El_Salvador|Tegucigalpa|Managua|Costa_Rica|Panama|Havana|Jamaica|Port-au-Prince|Santo_Domingo|Puerto_Rico|Barbados|Martinique|Guadeloupe|Nassau|Cancun|Merida|Mexico_City|Monterrey|Tijuana|Chihuahua|Hermosillo|Mazatlan|Bahia_Banderas|Matamoros)/;
+  function continentFromTimezone() {
+    let tz = "";
+    try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) { return null; }
+    if (/^(Europe|Atlantic)\//.test(tz)) return "europe";
+    if (/^Africa\//.test(tz)) return "africa";
+    if (/^(Asia|Indian)\//.test(tz)) return "asia";
+    if (/^(Australia|Pacific)\//.test(tz)) return "australia";
+    if (SOUTH_AM.test(tz)) return "south-america";
+    if (CENTRAL_AM.test(tz)) return "central-america";
+    if (/^(America|US|Canada)\//.test(tz)) return "north-america";
+    return null;
+  }
+  // Czy przy biezacym poziomie panel zaslania mape (wplywa na kadr).
+  let withPanel = false;
+
+  function panelEl() { return document.getElementById("dealerPanel"); }
+  function setPanelOpen(open) {
+    const p = panelEl();
+    if (!p) return;
+    p.classList.toggle("is-open", open);
+    p.setAttribute("aria-hidden", open ? "false" : "true");
+  }
   // Najblizej, jak podjezdza kamera. Ostre zdjecie NASA Europy konczy sie
   // na z8 (decyzja 23) — dalej podklad robi sie rozmyty.
   const MAX_ZOOM = 8;       // szczegol dealera
@@ -103,7 +145,10 @@ window.GlobeMap = (function () {
       const ll = CONTINENT_LNGLAT[cont.id];
       if (ll) {
         const el = pinElement("map-pin--continent", cont.name, countDealers(cont));
-        el.addEventListener("click", function () { openDealerPanel(cont.id); });
+        el.addEventListener("click", function () {
+          if (isMobile()) dealerGoTo("continent", { continentId: cont.id, countryId: null });
+          else openDealerPanel(cont.id);
+        });
         markers.push({ kind: "continent", el: el,
           marker: new window.mapboxgl.Marker({ element: el }).setLngLat(ll).addTo(map) });
       }
@@ -112,6 +157,11 @@ window.GlobeMap = (function () {
         const el = pinElement("map-pin--country", c.name, (c.dealers || []).length);
         el.style.display = "none";
         el.addEventListener("click", function () {
+          if (isMobile()) {
+            dealerGoTo("country", { continentId: cont.id, countryId: c.id });
+            setPanelOpen(true);
+            return;
+          }
           openDealerPanel(cont.id);
           dealerGoTo("country", { countryId: c.id });
         });
@@ -135,8 +185,13 @@ window.GlobeMap = (function () {
   // Margines kadru: przy wybranym kontynencie panel dealerow jest zawsze
   // otwarty i zaslania prawa czesc mapy. Nie sprawdzamy klasy is-open —
   // panel dostaje ja dopiero PO pierwszym sync().
+  // Telefon: panel zaslania dol ekranu (wysokosc), desktop: prawa strone.
   function padding(withPanel) {
-    const panel = document.getElementById("dealerPanel");
+    const panel = panelEl();
+    if (isMobile()) {
+      const h = withPanel && panel ? panel.offsetHeight : 0;
+      return { top: 70, bottom: h + 40, left: 40, right: 40 };
+    }
     const w = withPanel && panel ? panel.offsetWidth : 0;
     return { top: 110, bottom: 150, left: 120, right: w + 120 };
   }
@@ -146,12 +201,12 @@ window.GlobeMap = (function () {
     if (!list.length) return false;
     if (list.length === 1) {
       map.flyTo({ center: list[0].marker.getLngLat(), zoom: maxZoom,
-        padding: padding(true), duration: 1300 });
+        padding: padding(withPanel), duration: 1300 });
       return true;
     }
     const b = new window.mapboxgl.LngLatBounds();
     list.forEach(function (m) { b.extend(m.marker.getLngLat()); });
-    map.fitBounds(b, { padding: padding(true), maxZoom: maxZoom, duration: 1400 });
+    map.fitBounds(b, { padding: padding(withPanel), maxZoom: maxZoom, duration: 1400 });
     return true;
   }
 
@@ -164,6 +219,17 @@ window.GlobeMap = (function () {
     const contId = (nav && nav.continentId) || null;
     const countryId = (contId && nav.countryId) || null;
     const dealerIdx = countryId && nav.view === "dealer" ? nav.dealerIndex : null;
+
+    // Telefon: na poziomie kontynentu panel chowamy (np. po "Back" z kraju),
+    // a wrocic do wszystkich kontynentow pozwala chip nad mapa.
+    if (isMobile()) {
+      withPanel = !!countryId;
+      if (nav && nav.view === "continent") setPanelOpen(false);
+    } else {
+      withPanel = !!contId;
+    }
+    const chip = document.getElementById("globeBack");
+    if (chip) chip.hidden = !(isMobile() && nav && nav.view === "continent");
 
     markers.forEach(function (m) {
       let visible;
@@ -181,7 +247,7 @@ window.GlobeMap = (function () {
     shownKey = key;
 
     if (!contId) {
-      map.flyTo({ center: START.center, zoom: START.zoom, padding: padding(false), duration: 1400 });
+      map.flyTo({ center: start().center, zoom: start().zoom, padding: padding(false), duration: 1400 });
       return;
     }
     const pick = function (fn) { return markers.filter(fn); };
@@ -189,7 +255,7 @@ window.GlobeMap = (function () {
       const hit = pick(function (m) { return m.kind === "dealer" && m.countryId === countryId && m.index === dealerIdx; });
       if (hit.length) {
         map.flyTo({ center: hit[0].marker.getLngLat(), zoom: Math.max(map.getZoom(), MAX_ZOOM),
-          padding: padding(true), duration: 1200 });
+          padding: padding(withPanel), duration: 1200 });
       }
       return;
     }
@@ -211,7 +277,7 @@ window.GlobeMap = (function () {
     loadLib().then(function () {
       if (map) {             // drugi raz po "Close map" — mapa juz jest
         sync(null);
-        map.jumpTo(START);
+        map.jumpTo(start());
         el.classList.add("is-visible");
         onReady(el);
         return;
@@ -220,11 +286,15 @@ window.GlobeMap = (function () {
       map = new window.mapboxgl.Map({
         container: el,
         style: STYLE,
-        center: START.center,
-        zoom: START.zoom,
+        center: start().center,
+        zoom: start().zoom,
         attributionControl: true
       });
       map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      const chip = document.getElementById("globeBack");
+      if (chip) chip.addEventListener("click", function () {
+        dealerGoTo("continents", { continentId: null, countryId: null });
+      });
       map.once("load", function () {
         addMarkers();
         el.classList.add("is-visible");
