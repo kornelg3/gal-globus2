@@ -805,6 +805,9 @@ function renderDealerPanel() {
   }
 
   body.scrollTop = 0;
+
+  // Wariant /mapbox/: globus pokazuje pinezki poziomu wybranego w panelu.
+  if (window.GlobeMap && window.GlobeMap.sync) window.GlobeMap.sync(DealerNav);
 }
 
 /* ----------------------------------------------------------
@@ -841,6 +844,7 @@ function closeDealerPanel() {
   DealerMap.destroy();
   panel.classList.remove("is-open");
   panel.setAttribute("aria-hidden", "true");
+  if (window.GlobeMap && window.GlobeMap.sync) window.GlobeMap.sync(null);
 }
 
 function initDealerPanel() {

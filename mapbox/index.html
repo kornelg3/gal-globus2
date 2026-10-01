@@ -461,7 +461,40 @@
   .globe-map.is-visible { opacity: 1; pointer-events: auto; }
   .globe-pin { width: 0; height: 0; }
   /* srodek KROPKI (0.85rem) na wspolrzednej, etykieta wychodzi w prawo */
-  .globe-pin .map-pin { left: -0.425rem; top: 0; transform: translateY(-50%); animation: none; }
+  /* Pinezki na globusie. Srodek KROPKI na wspolrzednej (left = -pol kropki),
+     etykieta wychodzi w prawo i pokazuje sie na hover.
+     Kontrast: niebieska kropka ginie wsrod pomaranczowych swiatel miast,
+     dlatego kazda ma cienka biala obwodke i delikatna poswiate. */
+  .globe-pin .map-pin { top: 0; transform: translateY(-50%); animation: none; }
+  .globe-pin .map-pin__dot {
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 0 0 0.25rem rgba(47, 127, 181, 0.35), 0 0 0.9rem rgba(80, 170, 235, 0.55);
+  }
+  /* kontynent — najwiekszy, z pulsem */
+  .globe-pin .map-pin--continent { left: -0.6rem; }
+  .map-pin--continent .map-pin__dot { width: 1.2rem; height: 1.2rem; }
+  /* kraj — sredni, bez pulsu (w Europie jest ich 31) */
+  .globe-pin .map-pin--country { left: -0.475rem; }
+  .map-pin--country .map-pin__dot { width: 0.95rem; height: 0.95rem; }
+  .map-pin--country .map-pin__dot::after { display: none; }
+  /* dealer — odwrocone kolory: biala kropka z niebieskim rdzeniem,
+     zeby bylo widac, ze to inny poziom niz kraj */
+  .globe-pin .map-pin--dealer { left: -0.5rem; }
+  .map-pin--dealer .map-pin__dot {
+    width: 1rem; height: 1rem;
+    background: #fff;
+    border: 0.28rem solid var(--pin);
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.35), 0 0 0.9rem rgba(80, 170, 235, 0.6);
+  }
+  .map-pin--dealer .map-pin__dot::after { display: none; }
+
+  .globe-pin .map-pin:hover .map-pin__dot,
+  .map-pin.is-active .map-pin__dot {
+    transform: scale(1.3);
+    box-shadow: 0 0 0 0.35rem rgba(47, 127, 181, 0.5), 0 0 1.2rem rgba(80, 170, 235, 0.75);
+  }
+  .map-pin.is-active .map-pin__label { opacity: 1; transform: translateX(0); }
+  .globe-pin:hover { z-index: 2; }
 </style>
 </head>
 <body>
