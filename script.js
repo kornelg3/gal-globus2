@@ -7,8 +7,10 @@
    ============================================================ */
 
 function initScrollVideo() {
-  // Desktop-only: na wąskich ekranach nie uruchamiamy (mobile pomijamy).
-  if (window.innerWidth < 992) return;
+  // Mobile (< 992 px): zamiast mp4 sekwencja pionowych klatek AVIF —
+  // ten sam mechanizm co na stronach jachtów (initMobileVideoCanvas).
+  // Przewijanie mp4 scrollem na telefonach szarpie.
+  const isMobile = window.innerWidth < 992;
 
   // Rejestrujemy plugin, jeśli nie jest jeszcze zarejestrowany.
   if (!gsap.core.globals().ScrollTrigger) {
@@ -34,17 +36,78 @@ function initScrollVideo() {
   // Znacznik, że mapa z pinezkami przykryła canvas (wtedy canvas nie rysuje).
   let finalImage = null;
 
-  // --- Niewidzialny element <video> jako źródło klatek ---
+  // --- Niewidzialny element <video> jako źródło klatek (desktop) ---
   // NIE wstawiamy go do DOM. Służy tylko do dekodowania klatek,
-  // które potem rysujemy na <canvas>.
-  const video = document.createElement("video");
-  video.muted = true;
-  video.preload = "auto";
-  video.playsInline = true;
-  video.loop = false;
-  video.crossOrigin = "anonymous"; // potrzebne, gdy mp4 jest z innej domeny (CDN)
-  video.src = videoSrc;
-  video.load();
+  // które potem rysujemy na <canvas>. Na mobile go nie tworzymy,
+  // żeby telefon nie pobierał 10 MB mp4.
+  const video = isMobile ? null : document.createElement("video");
+  if (video) {
+    video.muted = true;
+    video.preload = "auto";
+    video.playsInline = true;
+    video.loop = false;
+    video.crossOrigin = "anonymous"; // potrzebne, gdy mp4 jest z innej domeny (CDN)
+    video.src = videoSrc;
+    video.load();
+  }
+
+  /* ----------------------------------------------------------
+     MobileFrames — sekwencja klatek AVIF (00001.avif, 00002.avif...).
+     Bramka: nic nie pobieramy, dopóki .track nie podejdzie na dwa
+     ekrany do viewportu (u dewelopera 10 klatek leci od razu — tu nie,
+     etap 0 ma być bez mediów).
+     ---------------------------------------------------------- */
+  const MobileFrames = (function () {
+    if (!isMobile) return null;
+    const base = (canvas.getAttribute("frames-src-mobile") || "").replace(/\/?$/, "/");
+    const count = parseInt(canvas.getAttribute("frames-count-mobile"), 10) || 0;
+    const imgs = [];
+    const ready = [];
+    let current = 0;   // klatka, którą chcemy pokazać
+    let shown = -1;    // klatka, która realnie jest na canvasie
+
+    function load(i) {
+      if (imgs[i]) return;
+      const img = new Image();
+      img.onload = () => {
+        ready[i] = true;
+        // Dociągnęła się klatka, na którą czekamy — rysujemy.
+        if (i === current) draw(current);
+        else if (shown < 0 && i === 0) draw(0);
+      };
+      img.src = base + String(i + 1).padStart(5, "0") + ".avif";
+      imgs[i] = img;
+    }
+
+    function loadAll() { for (let i = 0; i < count; i++) load(i); }
+
+    // Najbliższa wczytana klatka wstecz (żeby przy szybkim scrollu nie mrugać).
+    function draw(i) {
+      current = i;
+      if (playingSecond || finalImage) return;
+      let k = i;
+      while (k >= 0 && !ready[k]) k--;
+      if (k < 0) return;
+      drawFrame(imgs[k]);
+      shown = k;
+    }
+
+    const track = document.querySelector(".track");
+    if (track && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) { loadAll(); io.disconnect(); }
+      }, { rootMargin: "200% 0px" });
+      io.observe(track);
+    } else {
+      loadAll();
+    }
+
+    return {
+      count: count,
+      show: function (progress) { draw(Math.min(count - 1, Math.floor(progress * (count - 1)))); },
+      redraw: function () { draw(current); }
+    };
+  })();
 
   /* ----------------------------------------------------------
      resizeCanvas() — ustawia realny rozmiar canvasu w pikselach
@@ -58,7 +121,7 @@ function initScrollVideo() {
     canvas.width = canvas.offsetWidth * dpr;
     canvas.height = canvas.offsetHeight * dpr;
 
-    if (video.videoWidth && video.videoHeight) {
+    if (video && video.videoWidth && video.videoHeight) {
       const videoRatio = video.videoWidth / video.videoHeight;
       const canvasRatio = canvas.width / canvas.height;
 
@@ -84,6 +147,7 @@ function initScrollVideo() {
      ---------------------------------------------------------- */
   function drawFrame(src) {
     const v = src || video;
+    if (!v) return;
     // Źródło może być <video> (videoWidth/Height) lub <img> (naturalWidth/Height).
     const srcW = v.videoWidth || v.naturalWidth;
     const srcH = v.videoHeight || v.naturalHeight;
@@ -139,6 +203,11 @@ function initScrollVideo() {
 
           // Button pokazujemy, gdy wideo praktycznie się skończyło.
           toggleEndButton(videoProgress >= 0.98);
+
+          if (MobileFrames) {
+            MobileFrames.show(videoProgress);
+            return;
+          }
 
           const targetTime = video.duration * videoProgress;
 
@@ -267,8 +336,11 @@ function initScrollVideo() {
 
     // Odczekujemy na koniec crossfade'u i przerysowujemy klatkę wideo.
     setTimeout(() => {
-      video.currentTime = 0;
-      drawFrame();
+      if (MobileFrames) MobileFrames.show(0);
+      else {
+        video.currentTime = 0;
+        drawFrame();
+      }
       ScrollTrigger.refresh();
     }, 700);
   }
@@ -279,10 +351,18 @@ function initScrollVideo() {
   // --- Listenery ---
   window.addEventListener("resize", () => {
     resizeCanvas();
-    if (!finalImage) drawFrame();
+    if (!finalImage) MobileFrames ? MobileFrames.redraw() : drawFrame();
     else MapPins.layout();
     ScrollTrigger.refresh();
   });
+
+  // Mobile: bez czekania na metadane wideo — klatki rysują się same po wczytaniu.
+  if (MobileFrames) {
+    resizeCanvas();
+    buildTimeline();
+    ScrollTrigger.refresh();
+    return;
+  }
 
   // Przerysowanie przy zwykłym scrollu (poza GSAP) — dla pewności.
   window.addEventListener("scroll", () => {
