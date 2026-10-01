@@ -236,46 +236,79 @@ function initScrollVideo() {
     endCta.classList.toggle("is-visible", show);
     // Wariant /mapbox/: button widoczny = w tle sam plik biblioteki
     // (bez tworzenia mapy, wiec bez platnego wczytania) — B5.
-    if (show && window.GlobeMap && window.GlobeMap.enabled()) window.GlobeMap.prefetch();
+    // Bezpiecznik: tylko gdy sekcja jest naprawdę na ekranie. Przy starcie
+    // strony z zerową wysokością okna (podgląd, karta w tle) ScrollTrigger
+    // potrafi raz zgłosić progress 1 — bez tego leciałoby ~2,5 MB na wejściu.
+    if (show && trackOnScreen()) {
+      if (window.GlobeMap && window.GlobeMap.enabled()) window.GlobeMap.prefetch();
+      prefetchSecondVideo();
+    }
   }
 
   /* ----------------------------------------------------------
      playSecondVideo() — odtwarza drugą animację (vid2) w miejscu
      canvasu. Po zakończeniu przechodzi w statyczną mapę.
      ---------------------------------------------------------- */
+  /* Druga animacja szykuje się wcześniej — gdy pojawia się button
+     (B5: prefetch na widoczności, nie na kliknięciu). Bez tego po
+     kliknięciu była przerwa na pobranie początku vid2. */
+  function trackOnScreen() {
+    const t = document.querySelector(".track");
+    if (!t || !window.innerHeight) return false;
+    const r = t.getBoundingClientRect();
+    return r.top < window.innerHeight && r.bottom > 0;
+  }
+
+  let video2 = null;
+  function prefetchSecondVideo() {
+    if (video2 || !videoSrc2) return;
+    video2 = document.createElement("video");
+    video2.muted = true;
+    video2.playsInline = true;
+    video2.loop = false;
+    video2.preload = "auto";
+    video2.crossOrigin = "anonymous";
+    video2.src = videoSrc2;
+    video2.load();
+  }
+
   function playSecondVideo() {
     if (playingSecond || !videoSrc2) return;
     playingSecond = true;
     toggleEndButton(false);
-    // Wariant /mapbox/: mapa szykuje sie w tle, rownolegle z animacja.
-    if (window.GlobeMap && window.GlobeMap.enabled()) window.GlobeMap.prepare().catch(function () {});
-
-    const video2 = document.createElement("video");
-    video2.muted = true;
-    video2.playsInline = true;
-    video2.loop = false;
-    video2.crossOrigin = "anonymous";
-    video2.src = videoSrc2;
+    prefetchSecondVideo();          // gdyby button kliknięto, zanim zdążył
+    const v2 = video2;
+    v2.currentTime = 0;
 
     let rafId;
     function renderLoop() {
-      drawFrame(video2);
+      drawFrame(v2);
       rafId = requestAnimationFrame(renderLoop);
     }
 
-    video2.addEventListener("loadedmetadata", () => {
-      video2.play().catch(() => {});
-      renderLoop();
+    // Wariant /mapbox/: mapa buduje się w tle, ale dopiero gdy film
+    // już leci — inicjalizacja mapy obciąża przeglądarkę i opóźniała start.
+    v2.addEventListener("playing", function onPlaying() {
+      v2.removeEventListener("playing", onPlaying);
+      if (window.GlobeMap && window.GlobeMap.enabled()) {
+        setTimeout(function () { window.GlobeMap.prepare().catch(function () {}); }, 150);
+      }
     });
+
+    function start() {
+      v2.play().catch(() => {});
+      renderLoop();
+    }
+    if (v2.readyState >= 1) start();
+    else v2.addEventListener("loadedmetadata", start, { once: true });
 
     // Koniec: zatrzymujemy pętlę i podmieniamy ostatnią klatkę na obrazek.
-    video2.addEventListener("ended", () => {
+    v2.addEventListener("ended", function onEnded() {
+      v2.removeEventListener("ended", onEnded);
       cancelAnimationFrame(rafId);
-      drawFrame(video2);   // tymczasowo: ostatnia klatka, zanim wczyta się JPG
+      drawFrame(v2);   // tymczasowo: ostatnia klatka, zanim wczyta się JPG
       showFinalImage();
     });
-
-    video2.load();
   }
 
   /* ----------------------------------------------------------
