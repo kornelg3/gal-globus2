@@ -296,7 +296,8 @@ window.GlobeMap = (function () {
      NAJBLIZSZA widoczna pinezke w promieniu HIT_RADIUS px. Lepsze niz
      powiekszanie obszarow: przy gestych pinezkach wygrywa najblizsza,
      a nie ta, ktora lezy wyzej w DOM. */
-  const HIT_RADIUS = 30;
+  // Palec jest mniej precyzyjny niz kursor — na dotyku wiekszy promien.
+  const HIT_RADIUS = window.matchMedia("(hover: none)").matches ? 48 : 30;
   function pickNearestPin(e) {
     // Trafienie prosto w pinezke obsluguje jej wlasny listener.
     const t = e.originalEvent && e.originalEvent.target;

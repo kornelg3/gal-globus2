@@ -280,11 +280,19 @@ function initScrollVideo() {
     const v2 = video2;
     v2.currentTime = 0;
 
+    /* vid2 gra jako zwykły <video> nad canvasem, NIE przez rysowanie
+       klatek na canvas. Rysowanie robi główny wątek, a ten w tym samym
+       czasie buduje mapę Mapbox — animacja się zacinała. Element <video>
+       przeglądarka odtwarza poza głównym wątkiem. */
+    v2.setAttribute("playsinline", "");
+    v2.className = "canvas-video2";
+    v2.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;";
+    if (!v2.parentNode) canvas.parentNode.insertBefore(v2, canvas.nextSibling);
+    v2.style.display = "block";
+
+    // Bez pętli rysowania: zostawiamy pusty stub, żeby reszta kodu się nie zmieniała.
     let rafId;
-    function renderLoop() {
-      drawFrame(v2);
-      rafId = requestAnimationFrame(renderLoop);
-    }
+    function renderLoop() {}
 
     // Wariant /mapbox/: mapa buduje się w tle, ale dopiero gdy film
     // już leci — inicjalizacja mapy obciąża przeglądarkę i opóźniała start.
@@ -306,7 +314,8 @@ function initScrollVideo() {
     v2.addEventListener("ended", function onEnded() {
       v2.removeEventListener("ended", onEnded);
       cancelAnimationFrame(rafId);
-      drawFrame(v2);   // tymczasowo: ostatnia klatka, zanim wczyta się JPG
+      drawFrame(v2);   // ostatnia klatka na canvas, zanim wejdzie mapa
+      v2.style.display = "none"; // <video> schodzi — pod spodem ta sama klatka na canvasie
       showFinalImage();
     });
   }
@@ -364,6 +373,7 @@ function initScrollVideo() {
 
     finalImage = null;
     playingSecond = false;
+    if (video2) { video2.pause(); video2.style.display = "none"; }
 
     // Przewijamy na początek .track, żeby animacja zaczęła się od nowa.
     const track = document.querySelector(".track");
