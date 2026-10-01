@@ -149,7 +149,7 @@ window.GlobeMap = (function () {
           if (isMobile()) dealerGoTo("continent", { continentId: cont.id, countryId: null });
           else openDealerPanel(cont.id);
         });
-        markers.push({ kind: "continent", el: el,
+        markers.push({ kind: "continent", continentId: cont.id, el: el,
           marker: new window.mapboxgl.Marker({ element: el }).setLngLat(ll).addTo(map) });
       }
       (cont.countries || []).forEach(function (c) {
@@ -334,7 +334,10 @@ window.GlobeMap = (function () {
 
     markers.forEach(function (m) {
       let visible;
-      if (!contId) visible = m.kind === "continent";
+      // Pinezki POZOSTALYCH kontynentow zostaja na kazdym poziomie —
+      // mozna przeskoczyc na inny kontynent bez cofania w panelu.
+      if (m.kind === "continent") visible = m.continentId !== contId;
+      else if (!contId) visible = false;
       else if (!countryId) visible = m.kind === "country" && m.continentId === contId;
       else visible = (m.kind === "country" && m.continentId === contId && m.countryId !== countryId) ||
                      (m.kind === "dealer" && m.countryId === countryId);
