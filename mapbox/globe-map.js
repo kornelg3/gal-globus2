@@ -13,7 +13,7 @@
 
    Token NIE lezy w repo (decyzja 19). Podaje sie go raz w adresie:
      .../mapbox/?mbtoken=pk...
-   zapisujemy go w localStorage i czyscimy pasek adresu. Bez tokenu
+   zapisujemy go w localStorage (adres zostaje bez zmian). Bez tokenu
    strona dziala jak wersja ze zdjeciem.
    ============================================================ */
 window.GlobeMap = (function () {
@@ -92,9 +92,10 @@ window.GlobeMap = (function () {
     try {
       const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
       if (fromUrl !== null) {
+        // Token zostaje w adresie: skopiowany link / nowe okno incognito
+        // (pusty localStorage) dalej otwiera wariant Mapbox, nie zdjecie.
         if (fromUrl) window.localStorage.setItem(TOKEN_KEY, fromUrl);
         else window.localStorage.removeItem(TOKEN_KEY);
-        window.history.replaceState(null, "", window.location.pathname);
         return fromUrl;
       }
       return window.localStorage.getItem(TOKEN_KEY) || "";
@@ -374,7 +375,30 @@ window.GlobeMap = (function () {
       }
       return;
     }
-    frame(pick(function (m) { return m.kind === "country" && m.continentId === contId; }), 5);
+    frameContinent(contId, pick(function (m) { return m.kind === "country" && m.continentId === contId; }));
+  }
+
+  /* Kadr kontynentu = jego staly prostokat [[W, S], [E, N]] rozszerzony
+     o pinezki krajow. Sam kadr po pinezkach przyblizal za mocno, gdy
+     krajow jest malo (Ameryka Pn.: tylko USA i Kanada). */
+  // Prostokaty dobrane pod kadr Europy z pinezek (zoom ~3 na 1280 px),
+  // ktory Uzytkownik zaakceptowal. Za duze (cala Europa po Ural, cala
+  // Ameryka z Alaska) oddalaly kamere do zoomu ~1,6.
+  const CONTINENT_BOUNDS = {
+    "europe": [[-10, 35], [34, 62]],
+    "north-america": [[-125, 25], [-65, 58]],
+    "central-america": [[-100, 7], [-70, 24]],
+    "south-america": [[-82, -45], [-35, 10]],
+    "asia": [[35, -8], [140, 45]],
+    "africa": [[-18, -30], [52, 35]],
+    "australia": [[112, -46], [178, -10]]
+  };
+  function frameContinent(contId, list) {
+    const box = CONTINENT_BOUNDS[contId];
+    if (!box) { frame(list, 5); return; }
+    const b = new window.mapboxgl.LngLatBounds(box[0], box[1]);
+    list.forEach(function (m) { b.extend(m.marker.getLngLat()); });
+    map.fitBounds(b, { padding: padding(withPanel), maxZoom: 5, duration: 1400 });
   }
 
   function show(onReady) {
