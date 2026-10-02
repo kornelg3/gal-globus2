@@ -29,6 +29,18 @@ window.GlobeMap = (function () {
   const START = { center: [14, 46], zoom: 3.2 };
   const START_MOBILE = { center: [14, 46], zoom: 1.7 };
 
+  /* Wariant /mapbox-fly/ (window.GLOBE_FLY): bez vid2. Mapa startuje
+     z daleka (maly globus, mniej obrocony), po wczytaniu kamera najezdza
+     i dokreca sie na kadr. Konczy na oddaleniu (FLY_ZOOM), zeby nie
+     ciagnac kafelkow wysokiej rozdzielczosci — blizej dopiero po kliku
+     w kontynent. Bez wczesniejszego pobierania czegokolwiek z Mapboxa. */
+  const FLY = !!window.GLOBE_FLY;
+  const FLY_FROM_ZOOM = 0.4;
+  const FLY_ZOOM = 2.0;          // desktop; telefon zostaje przy 1,7
+  const FLY_SPIN = 70;           // o tyle stopni dlugosci globus sie dokreca
+  const FLY_MS = 2600;
+  if (FLY) START.zoom = FLY_ZOOM;
+
   /* Telefon (szerokosc panelu 100vw): panel wysuwa sie od dolu i dopiero
      po wyborze KRAJU. Klik w kontynent tylko przybliza mape i pokazuje
      pinezki krajow — lista nie zaslania mapy. */
@@ -411,7 +423,21 @@ window.GlobeMap = (function () {
   let broken = false; // mapa sie nie wczytala — do konca wizyty zdjecie
 
   function prefetch() {
+    if (FLY) return;   // fly: nic z Mapboxa przed kliknieciem
     if (token) loadLib().catch(function () {});
+  }
+
+  function flyFrom() {
+    const s = start();
+    return { center: [s.center[0] - FLY_SPIN, s.center[1] - 10], zoom: FLY_FROM_ZOOM };
+  }
+
+  function flyIn() {
+    map.jumpTo(flyFrom());
+    map.easeTo(Object.assign({}, start(), {
+      duration: FLY_MS,
+      easing: function (t) { return 1 - Math.pow(1 - t, 3); }   // easeOutCubic
+    }));
   }
 
   function prepare() {
@@ -421,11 +447,12 @@ window.GlobeMap = (function () {
     ready = loadLib().then(function () {
       return new Promise(function (resolve, reject) {
         window.mapboxgl.accessToken = token;
+        const cam = FLY ? flyFrom() : start();
         map = new window.mapboxgl.Map({
           container: el,
           style: STYLE,
-          center: start().center,
-          zoom: start().zoom,
+          center: cam.center,
+          zoom: cam.zoom,
           attributionControl: true
         });
         map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
@@ -486,8 +513,9 @@ window.GlobeMap = (function () {
         sync(null);
         map.jumpTo(start());
       }
-      shownOnce = true;
       map.resize();          // kontener mogl zmienic rozmiar, gdy mapa byla ukryta
+      if (FLY) flyIn();
+      shownOnce = true;
       el.classList.add("is-visible");
       onReady(el);
     }).catch(function () {

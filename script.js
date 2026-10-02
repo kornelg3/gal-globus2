@@ -321,14 +321,41 @@ function initScrollVideo() {
     // (globe-map.js). Bez tego pliku na stronie — zachowanie bez zmian.
     if (window.GlobeMap && window.GlobeMap.enabled()) {
       window.GlobeMap.show(function (el) {
+        setLoader(false);
         finalImage = el;
         const shade = document.getElementById("scrollShade");
         if (shade) shade.classList.add("is-hidden");
         if (mapToolbar) mapToolbar.classList.add("is-visible");
-      }, showPhotoMap);   // mapa sie nie wczytala — zdjecie jak w wersji bez Mapboxa
+      }, function () {    // mapa sie nie wczytala — zdjecie jak w wersji bez Mapboxa
+        setLoader(false);
+        showPhotoMap();
+      });
       return;
     }
     showPhotoMap();
+  }
+
+  /* ----------------------------------------------------------
+     Wariant /mapbox-fly/ (window.GLOBE_FLY): bez vid2. Klik pokazuje
+     prosty ekran wczytywania nad ostatnia klatka scroll-wideo, w tym
+     czasie dociaga sie Mapbox (nic z Mapboxa nie leci przed klikiem),
+     a po wczytaniu kamera najezdza na globus (globe-map.js).
+     ---------------------------------------------------------- */
+  function setLoader(on) {
+    const loader = document.getElementById("globeLoader");
+    if (loader) loader.classList.toggle("is-visible", on);
+  }
+
+  function onFindDealer() {
+    if (window.GLOBE_FLY && window.GlobeMap && window.GlobeMap.enabled()) {
+      if (playingSecond) return;
+      playingSecond = true;
+      toggleEndButton(false);
+      setLoader(true);
+      showFinalImage();
+      return;
+    }
+    playSecondVideo();
   }
 
   function showPhotoMap() {
@@ -386,7 +413,7 @@ function initScrollVideo() {
     }, 700);
   }
 
-  if (endButton) endButton.addEventListener("click", playSecondVideo);
+  if (endButton) endButton.addEventListener("click", onFindDealer);
   if (backButton) backButton.addEventListener("click", resetToGlobe);
 
   // --- Listenery ---
