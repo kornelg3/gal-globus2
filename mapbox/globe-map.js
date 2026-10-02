@@ -11,10 +11,12 @@
    Biblioteka Mapbox GL (~340 KB) dociaga sie dopiero po kliknieciu
    "Find a dealer" — nic nie leci przy wejsciu na strone.
 
-   Token NIE lezy w repo (decyzja 19). Podaje sie go raz w adresie:
-     .../mapbox/?mbtoken=pk...
-   zapisujemy go w localStorage (adres zostaje bez zmian). Bez tokenu
-   strona dziala jak wersja ze zdjeciem.
+   Token publiczny jest wpisany na stale (DEFAULT_TOKEN, 02.10.2026 —
+   zmiana decyzji 19). Na koncie Mapbox ma URL restrictions:
+   kornelg3.github.io/gal-globus2 i localhost:8765 — z innych adresow
+   Mapbox zwraca 403. Inny token mozna podac w adresie ?mbtoken=pk...,
+   a pusty ?mbtoken= wylacza wariant (strona jak wersja ze zdjeciem).
+   Gdy mapa sie nie wczyta (zly token, brak sieci) — wchodzi zdjecie.
    ============================================================ */
 window.GlobeMap = (function () {
   const LIB = {
@@ -82,7 +84,8 @@ window.GlobeMap = (function () {
     "australia": [134, -25]
   };
 
-  const TOKEN_KEY = "galeon_mapbox_token";
+  const DEFAULT_TOKEN = "pk.eyJ1Ijoia29ybmVsZzMiLCJhIjoiY211cXZsczA2MDFvODJ5cXh4amljdnFoOCJ9.tqLNW3kToz6EGIYgqIYhSw";
+  const LOAD_TIMEOUT = 10000;   // ms od konca animacji; potem zdjecie
   let token = readToken();
   let loading = null;
   let map = null;
@@ -90,18 +93,13 @@ window.GlobeMap = (function () {
 
   function readToken() {
     try {
+      // Stary zapis z localStorage (do 01.10) — sprzatamy, zeby zly token
+      // zapamietany kiedys w przegladarce nie blokowal mapy.
+      window.localStorage.removeItem("galeon_mapbox_token");
       const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
-      if (fromUrl !== null) {
-        // Token zostaje w adresie: skopiowany link / nowe okno incognito
-        // (pusty localStorage) dalej otwiera wariant Mapbox, nie zdjecie.
-        if (fromUrl) window.localStorage.setItem(TOKEN_KEY, fromUrl);
-        else window.localStorage.removeItem(TOKEN_KEY);
-        return fromUrl;
-      }
-      return window.localStorage.getItem(TOKEN_KEY) || "";
-    } catch (e) {
-      return "";
-    }
+      if (fromUrl !== null) return fromUrl;
+    } catch (e) {}
+    return DEFAULT_TOKEN;
   }
 
   function loadLib() {
@@ -420,7 +418,7 @@ window.GlobeMap = (function () {
     const el = document.getElementById("globeMap");
     if (!el) return Promise.reject();
     ready = loadLib().then(function () {
-      return new Promise(function (resolve) {
+      return new Promise(function (resolve, reject) {
         window.mapboxgl.accessToken = token;
         map = new window.mapboxgl.Map({
           container: el,
@@ -435,6 +433,14 @@ window.GlobeMap = (function () {
           dealerGoTo("continents", { continentId: null, countryId: null });
         });
         map.on("click", pickNearestPin);
+        // Zly token / brak dostepu do stylu: "load" nigdy nie przyjdzie.
+        map.on("error", function onErr(e) {
+          const s = e && e.error && e.error.status;
+          if (s === 401 || s === 403) {
+            map.off("error", onErr);
+            reject(e.error);
+          }
+        });
         map.once("load", function () {
           addHighlightLayers();
           addMarkers();
@@ -450,10 +456,23 @@ window.GlobeMap = (function () {
   }
 
   let shownOnce = false;
-  function show(onReady) {
+  function show(onReady, onFail) {
     const el = document.getElementById("globeMap");
     if (!el) return;
+    // Mapa nie przyszla na czas albo blad — zdjecie zamiast stania na
+    // ostatniej klatce animacji. Spozniona mapa juz sie nie pokazuje.
+    let settled = false;
+    function fail() {
+      if (settled) return;
+      settled = true;
+      console.warn("[GlobeMap] Mapa sie nie wczytala — pokazuje zdjecie.");
+      if (onFail) onFail();
+    }
+    const timer = setTimeout(fail, LOAD_TIMEOUT);
     prepare().then(function () {
+      clearTimeout(timer);
+      if (settled) return;
+      settled = true;
       if (shownOnce) {       // drugi raz po "Close map" — mapa juz jest
         sync(null);
         map.jumpTo(start());
@@ -462,7 +481,10 @@ window.GlobeMap = (function () {
       map.resize();          // kontener mogl zmienic rozmiar, gdy mapa byla ukryta
       el.classList.add("is-visible");
       onReady(el);
-    }).catch(function () {});
+    }).catch(function () {
+      clearTimeout(timer);
+      fail();
+    });
   }
 
   function hide() {

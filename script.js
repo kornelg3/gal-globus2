@@ -325,10 +325,13 @@ function initScrollVideo() {
         const shade = document.getElementById("scrollShade");
         if (shade) shade.classList.add("is-hidden");
         if (mapToolbar) mapToolbar.classList.add("is-visible");
-      });
+      }, showPhotoMap);   // mapa sie nie wczytala — zdjecie jak w wersji bez Mapboxa
       return;
     }
+    showPhotoMap();
+  }
 
+  function showPhotoMap() {
     const imgSrc = canvas.getAttribute("final-image");
     const mapImage = document.getElementById("mapImage");
     if (!imgSrc || !mapImage) return;
