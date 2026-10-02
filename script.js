@@ -243,25 +243,6 @@ function initScrollVideo() {
       if (window.GlobeMap && window.GlobeMap.enabled()) window.GlobeMap.prefetch();
       prefetchSecondVideo();
     }
-    armMapBuild(show && trackOnScreen());
-  }
-
-  /* Wariant /mapbox/: budowa mapy blokuje przegladarke kawalkami po ~60 ms
-     — w trakcie vid2 bylo to widac jako szarpniecia. Dlatego budujemy ja
-     wczesniej, na nieruchomej klatce: gdy button stoi na ekranie, a scroll
-     stoi od MAP_DWELL ms (onUpdate ScrollTriggera resetuje licznik przy
-     kazdym ruchu). Koszt: platne wczytanie takze bez klikniecia — tylko
-     u kogos, kto zatrzymal sie przy buttonie. Szybki klik = budowa w
-     trakcie vid2, jak wczesniej. */
-  const MAP_DWELL = 1000;
-  let mapDwellTimer = null;
-  function armMapBuild(on) {
-    clearTimeout(mapDwellTimer);
-    mapDwellTimer = null;
-    if (!on || !window.GlobeMap || !window.GlobeMap.enabled()) return;
-    mapDwellTimer = setTimeout(function () {
-      window.GlobeMap.prepare().catch(function () {});
-    }, MAP_DWELL);
   }
 
   /* ----------------------------------------------------------
