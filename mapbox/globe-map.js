@@ -408,6 +408,7 @@ window.GlobeMap = (function () {
                     z druga animacja); to jest wczytanie platne,
        show()     — po animacji: pokazuje mape, gdy jest gotowa. */
   let ready = null;   // Promise: mapa utworzona i po "load"
+  let broken = false; // mapa sie nie wczytala — do konca wizyty zdjecie
 
   function prefetch() {
     if (token) loadLib().catch(function () {});
@@ -433,12 +434,17 @@ window.GlobeMap = (function () {
           dealerGoTo("continents", { continentId: null, countryId: null });
         });
         map.on("click", pickNearestPin);
-        // Zly token / brak dostepu do stylu: "load" nigdy nie przyjdzie.
+        // Zly token (401) albo brak dostepu do stylu/zrodla (403 na .json
+        // lub /styles/). Pojedynczy kafelek z 403 NIE przerywa — Mapbox
+        // potrafi chwile serwowac zapamietane 403 po zmianie restrykcji.
         map.on("error", function onErr(e) {
-          const s = e && e.error && e.error.status;
-          if (s === 401 || s === 403) {
+          const err = e && e.error;
+          const s = err && err.status;
+          const url = (err && err.url) || "";
+          const fatal = s === 401 || (s === 403 && /\/styles\/v1\/[^/]+\/[^/?]+\?|\.json\?/.test(url));
+          if (fatal) {
             map.off("error", onErr);
-            reject(e.error);
+            reject(err);
           }
         });
         map.once("load", function () {
@@ -448,8 +454,11 @@ window.GlobeMap = (function () {
         });
       });
     });
+    // Po porazce NIE probujemy ponownie (kazda proba = kolejne platne
+    // wczytanie) — do odswiezenia strony zostaje wersja ze zdjeciem.
     ready.catch(function () {
-      ready = null;
+      broken = true;
+      if (map) { map.remove(); map = null; markers = []; }
       console.warn("[GlobeMap] Nie udalo sie wczytac Mapbox GL.");
     });
     return ready;
@@ -493,7 +502,7 @@ window.GlobeMap = (function () {
   }
 
   return {
-    enabled: function () { return !!token; },
+    enabled: function () { return !!token && !broken; },
     prefetch: prefetch,
     prepare: prepare,
     show: show,
