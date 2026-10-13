@@ -591,19 +591,13 @@ const MapPins = (function () {
 })();
 
 /* ============================================================
-   MAPA DEALERA — zwykła mapa uliczna z zoomem, w widoku dealera.
+   MAPA DEALERA — mała mapa uliczna z zoomem w karcie dealera.
 
-   Dwa warianty, ten sam interfejs:
-
-   • DOMYŚLNIE: Leaflet + stonowane kafelki CARTO na danych OpenStreetMap.
-     Bez konta, bez tokenu, bez karty. ~40 KB biblioteki zamiast ~340 KB
-     Mapboxa. To wystarcza do oceny układu i do prototypu.
-
-   • MAPBOX: gdy token jest dostępny, moduł bierze Mapbox GL 3.14.0 ze
-     stylem streets-v12 — dokładnie ten, który galeon.yachts ma dziś
-     w panelu kraju. W Webflow wystarczy window.GALEON_MAPBOX_TOKEN;
-     w prototypie na GitHub Pages podaje się go raz w adresie
-     (?mbtoken=pk...) — patrz mapboxToken() niżej.
+   • DOMYŚLNIE: Mapbox GL 3.14.0, styl "light-v11" — standardowy,
+     szary styl Mapboxa, celowo inny niż nocny globus, żeby karta
+     dealera odróżniała się od mapy głównej (Użytkownik, 13.10.2026).
+   • ZAPAS: Leaflet + kafelki CARTO na danych OpenStreetMap — gdy
+     Mapbox nie wystartuje (zły token, 401/403, brak sieci).
 
    ⚠ CARTO daje darmowy limit 5 mln kafelków/miesiąc i prosi o bezpłatny
      klucz API przy użyciu poza swoją platformą. Klucz jest wpisany niżej.
@@ -611,7 +605,6 @@ const MapPins = (function () {
 
    Biblioteka dociąga się DOPIERO przy pierwszym wejściu w konkretnego
    dealera — najgłębszy poziom, do którego dochodzi ułamek użytkowników.
-   Widok globalny zostaje statyczną grafiką.
    ============================================================ */
 const MAP_PROVIDER = {
   leaflet: {
@@ -644,66 +637,46 @@ const MAP_PROVIDER = {
   mapbox: {
     js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
     css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css",
-    style: "mapbox://styles/mapbox/streets-v12"
+    style: "mapbox://styles/mapbox/light-v11"
   },
   zoom: 14
 };
 
-/* Mapbox jest na razie WYLACZONY — mapa zawsze leci na CARTO.
-   Powod: token konta "galeonyachting" ma URL restrictions na galeon.yachts,
-   wiec poza ta domena styl wczytuje sie (200), a kafelki dostaja 403
-   i zostaje pusty prostokat. Zeby go wlaczyc: MAPBOX_ENABLED = true
-   plus token (window.GALEON_MAPBOX_TOKEN albo ?mbtoken=...) i domena
-   dopisana do URL restrictions w koncie Mapboxa. */
-const MAPBOX_ENABLED = false;
+/* Token Mapboxa dla malej mapki: window.GALEON_MAPBOX_TOKEN (tak bedzie
+   w Webflow), ?mbtoken=... w adresie albo token makiety — ten sam co
+   globus w mapbox/globe-map.js (URL restrictions: kornelg3.github.io
+   i localhost:8765; z innych adresow 403 i mapka schodzi na CARTO). */
+const MAPBOX_DEMO_TOKEN = "pk.eyJ1Ijoia29ybmVsZzMiLCJhIjoiY211cXZsczA2MDFvODJ5cXh4amljdnFoOCJ9.tqLNW3kToz6EGIYgqIYhSw";
 
 // Ile czekamy, az Mapbox wczyta styl, zanim uznamy go za martwego.
 const MAPBOX_TIMEOUT = 6000;
 
 const DealerMap = (function () {
-  let loading = null;   // Promise ładowania biblioteki (raz na sesję)
-  let map = null;       // aktualna instancja mapy
-  let kind = null;      // "leaflet" albo "mapbox"
+  const loading = {};   // Promise ładowania biblioteki, osobno na dostawcę
+  let map = null;       // Leaflet: mapa bieżącej karty
+  // Mapbox: jedna mapa na całą wizytę, przenoszona między kartami —
+  // każde utworzenie mapy Mapbox liczy się jako płatne wczytanie.
+  let mbMap = null;
+  let mbEl = null;
+  let mbMarker = null;
+  let mbBroken = false;   // Mapbox nie wystartował — do końca wizyty CARTO
+  let current = null;     // dealer pokazany w karcie (do zejścia na CARTO)
 
-  /* ----------------------------------------------------------
-     mapboxToken() — skad bierzemy token Mapboxa. Trzy zrodla,
-     w tej kolejnosci:
-
-     1. window.GALEON_MAPBOX_TOKEN — ustawione przez strone.
-        Tak to bedzie wygladac w Webflow, gdzie token juz siedzi.
-     2. ?mbtoken=pk... w adresie — do prototypu na GitHub Pages.
-        Token NIE moze lezec w repo (GitHub blokuje push z tokenem
-        Mapboxa), wiec podaje sie go raz w adresie; zapisujemy go
-        w localStorage tej przegladarki i czyscimy adres.
-     3. localStorage — z poprzedniej wizyty.
-
-     Brak tokenu = mapa leci na CARTO i wszystko dziala dalej.
-     Zeby wrocic na CARTO: ?mbtoken= (pusty) albo wyczyscic dane strony.
-     ---------------------------------------------------------- */
   function mapboxToken() {
     if (window.GALEON_MAPBOX_TOKEN) return window.GALEON_MAPBOX_TOKEN;
     try {
       const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
-      if (fromUrl !== null) {
-        if (fromUrl) window.localStorage.setItem("galeon_mapbox_token", fromUrl);
-        else window.localStorage.removeItem("galeon_mapbox_token");
-        // token znika z paska adresu — zostaje tylko w tej przegladarce
-        window.history.replaceState(null, "", window.location.pathname);
-        return fromUrl;
-      }
-      return window.localStorage.getItem("galeon_mapbox_token") || "";
-    } catch (e) {
-      return "";   // tryb prywatny albo zablokowane dane stron
-    }
+      if (fromUrl !== null) return fromUrl;
+    } catch (e) {}
+    return MAPBOX_DEMO_TOKEN;
   }
 
-  function useMapbox() {
-    return MAPBOX_ENABLED && !!mapboxToken();
-  }
-
-  function loadAssets(cfg) {
-    if (loading) return loading;
-    loading = new Promise(function (resolve, reject) {
+  function loadAssets(name) {
+    if (loading[name]) return loading[name];
+    // /mapbox/: biblioteka jest już na stronie (globus) — bez drugiego pobrania.
+    if (name === "mapbox" && window.mapboxgl) return (loading[name] = Promise.resolve());
+    const cfg = MAP_PROVIDER[name];
+    loading[name] = new Promise(function (resolve, reject) {
       const css = document.createElement("link");
       css.rel = "stylesheet";
       css.href = cfg.css;
@@ -715,14 +688,16 @@ const DealerMap = (function () {
       js.onerror = reject;
       document.head.appendChild(js);
     });
-    return loading;
+    return loading[name];
   }
 
+  // Leaflet usuwamy; mapę Mapbox tylko odpinamy od karty (bez nowego wczytania).
   function destroy() {
-    if (!map) return;
-    if (kind === "mapbox") map.remove();
-    else map.remove();   // Leaflet ma tę samą nazwę metody
-    map = null;
+    if (map) {
+      map.remove();
+      map = null;
+    }
+    if (mbEl && mbEl.parentNode) mbEl.parentNode.removeChild(mbEl);
   }
 
   function mountLeaflet(el, lat, lng, label) {
@@ -757,63 +732,81 @@ const DealerMap = (function () {
     map.on("mouseout", function () { map.scrollWheelZoom.disable(); });
   }
 
+  /* Mapbox nie wystartował (401/403 na stylu, timeout) — sprzątamy
+     i pokazujemy bieżącego dealera na CARTO. Bez ponownej próby
+     (każda = kolejne płatne wczytanie). */
+  function giveUp(why) {
+    if (mbBroken) return;
+    mbBroken = true;
+    console.warn("[DealerMap] Mapbox nie wystartowal (" + why + ") — przechodze na CARTO.");
+    if (mbMap) mbMap.remove();
+    if (mbEl && mbEl.parentNode) mbEl.parentNode.removeChild(mbEl);
+    mbMap = mbEl = mbMarker = null;
+    const el = document.getElementById("dealerMap");
+    if (el && current) mount(el, current.lat, current.lng, current.label);
+  }
+
   function mountMapbox(el, lat, lng, label) {
     const gl = window.mapboxgl;
-    gl.accessToken = mapboxToken();
-    map = new gl.Map({
-      container: el,
+    if (mbMap) {            // kolejny dealer — ta sama mapa, nowe miejsce
+      el.appendChild(mbEl);
+      mbMap.resize();
+      mbMap.jumpTo({ center: [lng, lat], zoom: MAP_PROVIDER.zoom });
+      mbMarker.setLngLat([lng, lat]);
+      mbMarker.getPopup().setText(label || "");
+      return;
+    }
+    mbEl = document.createElement("div");
+    mbEl.style.width = "100%";
+    mbEl.style.height = "100%";
+    el.appendChild(mbEl);
+    mbMap = new gl.Map({
+      container: mbEl,
+      accessToken: mapboxToken(),   // własny token, niezależny od globusa
       style: MAP_PROVIDER.mapbox.style,
       center: [lng, lat],
       zoom: MAP_PROVIDER.zoom,
       // scroll w panelu ma przewijać panel — zoom kółkiem dopiero z Ctrl
       cooperativeGestures: true
     });
-    map.addControl(new gl.NavigationControl({ showCompass: false }), "top-right");
-    new gl.Marker({ color: "#1f4a73" })
+    mbMap.addControl(new gl.NavigationControl({ showCompass: false }), "top-right");
+    mbMarker = new gl.Marker({ color: "#1f4a73" })
       .setLngLat([lng, lat])
       .setPopup(new gl.Popup({ offset: 24 }).setText(label || ""))
-      .addTo(map);
+      .addTo(mbMap);
 
-    /* Token Mapboxa bywa ograniczony do konkretnej domeny (URL restrictions).
-       Wtedy styl wczytuje sie normalnie, a kafelki dostaja 403 i zostaje
-       pusty prostokat — bez zadnego bledu w konsoli. Zamiast tego po paru
-       sekundach schodzimy na CARTO, zeby mapa byla. */
+    // Pojedynczy kafelek z 403 nie przerywa — tylko styl / źródło (jak w globusie).
     let settled = false;
-    const giveUp = function (why) {
-      if (settled) return;
-      settled = true;
-      console.warn("[DealerMap] Mapbox nie wystartowal (" + why + ") — przechodze na CARTO.");
-      destroy();
-      el.innerHTML = "";
-      el.className = "dealer-detail__map is-live";
-      kind = "leaflet";
-      loading = null;                       // Leaflet trzeba dopiero dociagnac
-      loadAssets(MAP_PROVIDER.leaflet)
-        .then(function () { mountLeaflet(el, lat, lng, label); })
-        .catch(function () { el.classList.add("is-error"); });
-    };
-
-    map.on("load", function () { settled = true; });
-    map.on("error", function (e) {
-      const st = e && e.error && e.error.status;
-      if (st === 401 || st === 403) giveUp("HTTP " + st);
+    mbMap.on("load", function () { settled = true; });
+    mbMap.on("error", function (e) {
+      const err = e && e.error;
+      const st = err && err.status;
+      const url = (err && err.url) || "";
+      if (st === 401 || (st === 403 && /\/styles\/v1\/[^/]+\/[^/?]+\?|\.json\?/.test(url))) giveUp("HTTP " + st);
     });
-    setTimeout(function () {
-      if (!settled && !(map && map.isStyleLoaded())) giveUp("timeout");
-    }, MAPBOX_TIMEOUT);
+    // Karta w tle nie rysuje i mapa stoi — wtedy czekamy dalej, bez CARTO.
+    (function check() {
+      setTimeout(function () {
+        if (settled || !mbMap) return;
+        if (document.hidden) { check(); return; }
+        if (!mbMap.isStyleLoaded()) giveUp("timeout");
+      }, MAPBOX_TIMEOUT);
+    })();
   }
 
   function mount(el, lat, lng, label) {
     destroy();
     if (!el) return;
-    kind = useMapbox() ? "mapbox" : "leaflet";
-    const cfg = kind === "mapbox" ? MAP_PROVIDER.mapbox : MAP_PROVIDER.leaflet;
+    current = { lat: lat, lng: lng, label: label };
+    const kind = !mbBroken && mapboxToken() ? "mapbox" : "leaflet";
 
-    loadAssets(cfg).then(function () {
+    loadAssets(kind).then(function () {
+      if (!el.isConnected) return;   // użytkownik zdążył przejść dalej
       if (kind === "mapbox") mountMapbox(el, lat, lng, label);
       else mountLeaflet(el, lat, lng, label);
       el.classList.remove("is-loading");
     }).catch(function () {
+      if (kind === "mapbox") { giveUp("biblioteka"); return; }
       el.classList.remove("is-loading");
       el.classList.add("is-error");
     });
@@ -1028,9 +1021,6 @@ function renderDealerView(cont, country, index) {
     links.push('<a class="dealer-detail__link is-secondary" href="' + dealerEscape(d.maps) +
       '" target="_blank" rel="noopener nofollow">See directions</a>');
   }
-  if (d.page) {
-    links.push('<button class="dealer-detail__link is-secondary" type="button" data-share-dealer>Share</button>');
-  }
 
   return (
     '<p class="dealer-panel__eyebrow">' + dealerEscape(country.name) + "</p>" +
@@ -1047,7 +1037,13 @@ function renderDealerView(cont, country, index) {
       : '<div class="dealer-detail__map" style="background-image:url(&quot;' + dealerEscape(mapSrc) +
         '&quot;);background-position:' + cont.pos.x + "% " + cont.pos.y + '%">' +
         '<span class="dealer-detail__crosshair"></span>' +
-        "</div>")
+        "</div>") +
+
+    // Link do udostepnienia — pod mapka.
+    (d.page
+      ? '<div class="dealer-detail__links"><button class="dealer-detail__link is-secondary" type="button" ' +
+        "data-share-dealer>Share location</button></div>"
+      : "")
   );
 }
 
