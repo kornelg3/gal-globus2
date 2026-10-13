@@ -1024,13 +1024,13 @@
     });
   }
 
-  window.GaleonDealers = {
+  if (window.GlobeMap) window.GlobeMap.init({
     escape: dealerEscape,
     countDealers: countDealers,
     goTo: dealerGoTo,
     openPanel: openDealerPanel,
     setPanelOpen: setDealerPanelOpen
-  };
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
