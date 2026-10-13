@@ -24,6 +24,7 @@ function initScrollVideo() {
 
   let pendingDealer = sharedDealerFromUrl();
   let skipFrames = !!pendingDealer;
+  let resetting = false;
 
   const DIM_FROM = 0.8;
   const SECOND_VIDEO_TIMEOUT = 8000;
@@ -154,7 +155,7 @@ function initScrollVideo() {
 
           const videoProgress = Math.min(self.progress / (1 - HOLD_END), 1);
 
-          setEndDim(videoProgress);
+          setEndDim(resetting ? 0 : videoProgress);
 
           toggleEndButton(videoProgress >= 0.98);
 
@@ -182,8 +183,9 @@ function initScrollVideo() {
   function toggleEndButton(show) {
     if (!endCta) return;
 
-    if (playingSecond || finalImage) show = false;
+    if (playingSecond || finalImage || resetting) show = false;
     endCta.classList.toggle("is-visible", show);
+    endCta.inert = !show;
 
     if (show && trackOnScreen()) {
       if (window.GlobeMap && window.GlobeMap.enabled()) window.GlobeMap.prefetch();
@@ -265,7 +267,7 @@ function initScrollVideo() {
         finalImage = el;
         const shade = document.getElementById("scrollShade");
         if (shade) shade.classList.add("is-hidden");
-        if (mapToolbar) mapToolbar.classList.add("is-visible");
+        setToolbar(true);
         openPendingDealer();
       }, function () {
         setLoader(false);
@@ -274,6 +276,12 @@ function initScrollVideo() {
       return;
     }
     showPhotoMap();
+  }
+
+  function setToolbar(on) {
+    if (!mapToolbar) return;
+    mapToolbar.classList.toggle("is-visible", on);
+    mapToolbar.inert = !on;
   }
 
   function setLoader(on) {
@@ -308,7 +316,7 @@ function initScrollVideo() {
       if (shade) shade.classList.add("is-hidden");
 
       MapPins.mount(mapImage);
-      if (mapToolbar) mapToolbar.classList.add("is-visible");
+      setToolbar(true);
       setLoader(false);
       openPendingDealer();
     };
@@ -333,11 +341,7 @@ function initScrollVideo() {
     const target = pendingDealer;
     pendingDealer = null;
     dealerGoTo("dealer", target);
-    const panel = document.getElementById("dealerPanel");
-    if (panel) {
-      panel.classList.add("is-open");
-      panel.setAttribute("aria-hidden", "false");
-    }
+    setDealerPanelOpen(true);
   }
 
   function resetToGlobe() {
@@ -347,7 +351,7 @@ function initScrollVideo() {
     closeDealerPanel();
     MapPins.unmount();
     if (window.GlobeMap) window.GlobeMap.hide();
-    if (mapToolbar) mapToolbar.classList.remove("is-visible");
+    setToolbar(false);
     if (mapImage) mapImage.classList.remove("is-visible");
     if (shade) shade.classList.remove("is-hidden");
 
@@ -361,20 +365,29 @@ function initScrollVideo() {
       if (MobileFrames) MobileFrames.loadAll();
     }
 
+    resetting = true;
     const track = document.querySelector(".track");
-    if (track) {
-      const top = track.getBoundingClientRect().top + window.scrollY;
-      window.scrollTo({ top: top, behavior: "smooth" });
-    }
+    const top = track ? track.getBoundingClientRect().top + window.scrollY : window.scrollY;
+    window.scrollTo({ top: top, behavior: "smooth" });
 
-    setTimeout(() => {
+    let fallback;
+    function done() {
+      window.removeEventListener("scroll", onScroll);
+      clearTimeout(fallback);
+      resetting = false;
       if (MobileFrames) MobileFrames.show(0);
       else {
+        video.addEventListener("seeked", function () { drawFrame(); }, { once: true });
         video.currentTime = 0;
-        drawFrame();
       }
       ScrollTrigger.refresh();
-    }, 700);
+    }
+    function onScroll() {
+      if (Math.abs(window.scrollY - top) < 2) done();
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    fallback = setTimeout(done, 1500);
+    onScroll();
   }
 
   if (endButton) endButton.addEventListener("click", onFindDealer);
@@ -704,10 +717,11 @@ function shareCurrentDealer(btn) {
     navigator.share({ title: d.name + " — Galeon dealer", url: url }).catch(function () {});
     return;
   }
-  const label = btn.textContent;
+  if (!btn.dataset.label) btn.dataset.label = btn.textContent;
   const done = function () {
     btn.textContent = "Link copied";
-    setTimeout(function () { btn.textContent = label; }, 1800);
+    clearTimeout(btn.copiedTimer);
+    btn.copiedTimer = setTimeout(function () { btn.textContent = btn.dataset.label; }, 1800);
   };
 
   const fallback = function () { try { window.prompt("Copy link:", url); } catch (e) {} };
@@ -917,21 +931,43 @@ function dealerGoBack() {
   else if (DealerNav.view === "continent") dealerGoTo("continents", { continentId: null, countryId: null });
 }
 
-function openDealerPanel(continentId) {
+let panelReturnFocus = null;
+
+function focusPanelTitle() {
+  const title = document.querySelector("#dealerPanelBody .dealer-panel__title");
+  if (!title) return;
+  title.setAttribute("tabindex", "-1");
+  title.focus({ preventScroll: true });
+}
+
+function setDealerPanelOpen(open) {
   const panel = document.getElementById("dealerPanel");
   if (!panel) return;
+  const wasOpen = panel.classList.contains("is-open");
+  const hadFocus = panel.contains(document.activeElement);
+  panel.classList.toggle("is-open", open);
+  panel.setAttribute("aria-hidden", open ? "false" : "true");
+  panel.inert = !open;
+  if (open && !wasOpen) {
+    const active = document.activeElement;
+    panelReturnFocus = active && active !== document.body ? active : null;
+    focusPanelTitle();
+  } else if (!open && wasOpen) {
+    const back = panelReturnFocus;
+    panelReturnFocus = null;
+    if (hadFocus && back && back.isConnected) back.focus({ preventScroll: true });
+  }
+}
+
+function openDealerPanel(continentId) {
   if (continentId) dealerGoTo("continent", { continentId: continentId, countryId: null });
   else dealerGoTo("continents", { continentId: null, countryId: null });
-  panel.classList.add("is-open");
-  panel.setAttribute("aria-hidden", "false");
+  setDealerPanelOpen(true);
 }
 
 function closeDealerPanel() {
-  const panel = document.getElementById("dealerPanel");
-  if (!panel) return;
   DealerMap.destroy();
-  panel.classList.remove("is-open");
-  panel.setAttribute("aria-hidden", "true");
+  setDealerPanelOpen(false);
   DealerNav.view = "continents";
   DealerNav.continentId = DealerNav.countryId = DealerNav.dealerIndex = null;
   setDealerUrl("");
@@ -944,8 +980,17 @@ function initDealerPanel() {
   const body = document.getElementById("dealerPanelBody");
   const openAll = document.getElementById("openAllDealers");
 
+  setDealerPanelOpen(false);
+  ["endCta", "mapToolbar"].forEach(function (id) {
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains("is-visible")) el.inert = true;
+  });
+
   if (closeBtn) closeBtn.addEventListener("click", closeDealerPanel);
-  if (backBtn) backBtn.addEventListener("click", dealerGoBack);
+  if (backBtn) backBtn.addEventListener("click", function () {
+    dealerGoBack();
+    focusPanelTitle();
+  });
   if (openAll) openAll.addEventListener("click", function () { openDealerPanel(null); });
 
   if (body) {
@@ -956,19 +1001,13 @@ function initDealerPanel() {
         return;
       }
       const toCont = e.target.closest("[data-go-continent]");
-      if (toCont) {
-        dealerGoTo("continent", { continentId: toCont.getAttribute("data-go-continent"), countryId: null });
-        return;
-      }
       const toCountry = e.target.closest("[data-go-country]");
-      if (toCountry) {
-        dealerGoTo("country", { countryId: toCountry.getAttribute("data-go-country") });
-        return;
-      }
       const toDealer = e.target.closest("[data-go-dealer]");
-      if (toDealer) {
-        dealerGoTo("dealer", { dealerIndex: Number(toDealer.getAttribute("data-go-dealer")) });
-      }
+      if (toCont) dealerGoTo("continent", { continentId: toCont.getAttribute("data-go-continent"), countryId: null });
+      else if (toCountry) dealerGoTo("country", { countryId: toCountry.getAttribute("data-go-country") });
+      else if (toDealer) dealerGoTo("dealer", { dealerIndex: Number(toDealer.getAttribute("data-go-dealer")) });
+      else return;
+      focusPanelTitle();
     });
   }
 

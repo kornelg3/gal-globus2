@@ -330,6 +330,8 @@ html, body {
   color: rgba(255, 255, 255, 0.82);
 }
 
+.dealer-panel__title:focus { outline: none; }
+
 .dealer-panel__title {
   font-family: "Michroma", "Arial Narrow", Arial, sans-serif;
   font-weight: 400;

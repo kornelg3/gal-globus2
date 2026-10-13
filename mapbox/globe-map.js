@@ -46,10 +46,7 @@ window.GlobeMap = (function () {
 
   function panelEl() { return document.getElementById("dealerPanel"); }
   function setPanelOpen(open) {
-    const p = panelEl();
-    if (!p) return;
-    p.classList.toggle("is-open", open);
-    p.setAttribute("aria-hidden", open ? "false" : "true");
+    setDealerPanelOpen(open);
   }
 
   const MAX_ZOOM = 8;
