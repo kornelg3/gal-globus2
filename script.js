@@ -35,6 +35,10 @@ function initScrollVideo() {
   let playingSecond = false;
   // Znacznik, że mapa z pinezkami przykryła canvas (wtedy canvas nie rysuje).
   let finalImage = null;
+  // Wejście z linku ?dealer=... — mapa od razu, bez animacji. Klatki mobilne
+  // wtedy się nie pobierają (dopiero po "Close map").
+  let pendingDealer = sharedDealerFromUrl();
+  let skipFrames = !!pendingDealer;
 
   // --- Niewidzialny element <video> jako źródło klatek (desktop) ---
   // NIE wstawiamy go do DOM. Służy tylko do dekodowania klatek,
@@ -95,6 +99,7 @@ function initScrollVideo() {
     const track = document.querySelector(".track");
     if (track && "IntersectionObserver" in window) {
       const io = new IntersectionObserver((entries) => {
+        if (skipFrames) return;
         if (entries.some((e) => e.isIntersecting)) { loadAll(); io.disconnect(); }
       }, { rootMargin: "200% 0px" });
       io.observe(track);
@@ -104,6 +109,7 @@ function initScrollVideo() {
 
     return {
       count: count,
+      loadAll: loadAll,
       show: function (progress) { draw(Math.min(count - 1, Math.floor(progress * (count - 1)))); },
       redraw: function () { draw(current); }
     };
@@ -326,6 +332,7 @@ function initScrollVideo() {
         const shade = document.getElementById("scrollShade");
         if (shade) shade.classList.add("is-hidden");
         if (mapToolbar) mapToolbar.classList.add("is-visible");
+        openPendingDealer();
       }, function () {    // mapa sie nie wczytala — zdjecie jak w wersji bez Mapboxa
         setLoader(false);
         showPhotoMap();
@@ -372,8 +379,40 @@ function initScrollVideo() {
       // Warstwa pinezek: pozycjonujemy ją dokładnie na widocznym kadrze mapy.
       MapPins.mount(mapImage);
       if (mapToolbar) mapToolbar.classList.add("is-visible");
+      setLoader(false);
+      openPendingDealer();
     };
     mapImage.src = imgSrc;
+  }
+
+  /* ----------------------------------------------------------
+     Wejście z linku ?dealer=... — przewija na koniec sekcji (tam,
+     gdzie normalnie stoi mapa), pomija obie animacje i pokazuje mapę;
+     gdy mapa jest gotowa, panel otwiera się od razu na dealerze.
+     ---------------------------------------------------------- */
+  function openSharedDealer() {
+    playingSecond = true;
+    toggleEndButton(false);
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    const track = document.querySelector(".track");
+    if (track) {
+      const top = track.getBoundingClientRect().top + window.scrollY + track.offsetHeight - window.innerHeight;
+      window.scrollTo(0, Math.max(0, top));
+    }
+    setLoader(true);
+    showFinalImage();
+  }
+
+  function openPendingDealer() {
+    if (!pendingDealer) return;
+    const target = pendingDealer;
+    pendingDealer = null;
+    dealerGoTo("dealer", target);
+    const panel = document.getElementById("dealerPanel");
+    if (panel) {
+      panel.classList.add("is-open");
+      panel.setAttribute("aria-hidden", "false");
+    }
   }
 
   /* ----------------------------------------------------------
@@ -394,6 +433,11 @@ function initScrollVideo() {
 
     finalImage = null;
     playingSecond = false;
+    pendingDealer = null;
+    if (skipFrames) {        // po wejściu z linku klatki mobilne dopiero teraz
+      skipFrames = false;
+      if (MobileFrames) MobileFrames.loadAll();
+    }
 
     // Przewijamy na początek .track, żeby animacja zaczęła się od nowa.
     const track = document.querySelector(".track");
@@ -423,6 +467,8 @@ function initScrollVideo() {
     else MapPins.layout();
     ScrollTrigger.refresh();
   });
+
+  if (pendingDealer) openSharedDealer();
 
   // Mobile: bez czekania na metadane wideo — klatki rysują się same po wczytaniu.
   if (MobileFrames) {
@@ -771,6 +817,80 @@ const DealerNav = { view: "continents", continentId: null, countryId: null, deal
 // Adres serwisu — linki "More" w danych są względne (/dealers/...).
 const SITE = "https://galeon.yachts";
 
+/* ----------------------------------------------------------
+   LINK DO DEALERA — ?dealer=<slug>. Slug = koncowka adresu podstrony
+   dealera (d.page, np. /dealers/aventura-boats-austria), unikalna
+   dla kazdego z 133. Adres w pasku zmienia sie przy wejsciu w dealera
+   (replaceState — bez zasmiecania historii), a otwarcie takiego linku
+   pomija animacje i otwiera mape od razu na tym dealerze.
+   ---------------------------------------------------------- */
+function dealerSlug(d) {
+  return d && d.page ? d.page.split("/").filter(Boolean).pop() : "";
+}
+
+function findDealerBySlug(slug) {
+  if (!slug) return null;
+  let hit = null;
+  (window.DEALERS || []).forEach(function (cont) {
+    (cont.countries || []).forEach(function (c) {
+      (c.dealers || []).forEach(function (d, i) {
+        if (!hit && dealerSlug(d) === slug) hit = { continentId: cont.id, countryId: c.id, dealerIndex: i };
+      });
+    });
+  });
+  return hit;
+}
+
+function sharedDealerFromUrl() {
+  try { return findDealerBySlug(new URLSearchParams(window.location.search).get("dealer")); }
+  catch (e) { return null; }
+}
+
+// Pusty slug zdejmuje parametr; pozostale parametry adresu zostaja.
+function setDealerUrl(slug) {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (slug) params.set("dealer", slug);
+    else params.delete("dealer");
+    const q = params.toString();
+    const url = window.location.pathname + (q ? "?" + q : "") + window.location.hash;
+    if (url !== window.location.pathname + window.location.search + window.location.hash) {
+      window.history.replaceState(null, "", url);
+    }
+  } catch (e) {}
+}
+
+// Link do udostepnienia — bez innych parametrow (np. ?mbtoken).
+function dealerShareUrl(d) {
+  return window.location.origin + window.location.pathname + "?dealer=" + encodeURIComponent(dealerSlug(d));
+}
+
+/* Telefon: systemowe menu udostepniania. Komputer: kopiowanie do schowka
+   (Windows tez ma navigator.share, ale otwiera okno systemu — kopiowanie
+   jest tam prostsze). */
+function shareCurrentDealer(btn) {
+  const country = findCountry(findContinent(DealerNav.continentId), DealerNav.countryId);
+  const d = country && country.dealers[DealerNav.dealerIndex];
+  if (!d) return;
+  const url = dealerShareUrl(d);
+  if (navigator.share && window.matchMedia("(hover: none)").matches) {
+    navigator.share({ title: d.name + " — Galeon dealer", url: url }).catch(function () {});
+    return;
+  }
+  const label = btn.textContent;
+  const done = function () {
+    btn.textContent = "Link copied";
+    setTimeout(function () { btn.textContent = label; }, 1800);
+  };
+  // Schowek zablokowany — okienko z linkiem do skopiowania ręcznie.
+  const fallback = function () { try { window.prompt("Copy link:", url); } catch (e) {} };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(done, fallback);
+  } else {
+    fallback();
+  }
+}
+
 // Bezpieczne escapowanie tekstu wstawianego do HTML.
 function dealerEscape(s) {
   return String(s == null ? "" : s)
@@ -891,6 +1011,9 @@ function renderDealerView(cont, country, index) {
     links.push('<a class="dealer-detail__link is-secondary" href="' + dealerEscape(d.maps) +
       '" target="_blank" rel="noopener nofollow">See directions</a>');
   }
+  if (d.page) {
+    links.push('<button class="dealer-detail__link is-secondary" type="button" data-share-dealer>Share</button>');
+  }
 
   return (
     '<p class="dealer-panel__eyebrow">' + dealerEscape(country.name) + "</p>" +
@@ -954,6 +1077,10 @@ function renderDealerPanel() {
 
   body.scrollTop = 0;
 
+  // Adres w pasku = link do pokazanego dealera (poza widokiem dealera bez parametru).
+  const shown = DealerNav.view === "dealer" && country ? country.dealers[DealerNav.dealerIndex] : null;
+  setDealerUrl(dealerSlug(shown));
+
   // Wariant /mapbox/: globus pokazuje pinezki poziomu wybranego w panelu.
   if (window.GlobeMap && window.GlobeMap.sync) window.GlobeMap.sync(DealerNav);
 }
@@ -992,6 +1119,7 @@ function closeDealerPanel() {
   DealerMap.destroy();
   panel.classList.remove("is-open");
   panel.setAttribute("aria-hidden", "true");
+  setDealerUrl("");
   if (window.GlobeMap && window.GlobeMap.sync) window.GlobeMap.sync(null);
 }
 
@@ -1008,6 +1136,11 @@ function initDealerPanel() {
   // Delegacja klików wewnątrz panelu: zejście o poziom niżej.
   if (body) {
     body.addEventListener("click", function (e) {
+      const share = e.target.closest("[data-share-dealer]");
+      if (share) {
+        shareCurrentDealer(share);
+        return;
+      }
       const toCont = e.target.closest("[data-go-continent]");
       if (toCont) {
         dealerGoTo("continent", { continentId: toCont.getAttribute("data-go-continent"), countryId: null });

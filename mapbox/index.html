@@ -539,6 +539,40 @@
   }
   .map-pin.is-active .map-pin__label { opacity: 1; transform: translateX(0); }
   .globe-pin:hover { z-index: 2; }
+  /* Ekran wczytywania — w /mapbox/ tylko przy wejsciu z linku ?dealer=... */
+  .globe-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: rgba(3, 5, 12, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .globe-loader.is-visible { opacity: 1; }
+  .globe-loader__ring {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-top-color: #fff;
+    animation: globe-loader-spin 0.9s linear infinite;
+  }
+  .globe-loader__label {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+  @keyframes globe-loader-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) {
+    .globe-loader__ring { animation-duration: 2.5s; }
+  }
 </style>
 </head>
 <body>
@@ -621,12 +655,16 @@
 
   <div class="track" data-scroll-container>
     <div class="canvas_wrapper">
-      <canvas id="videoCanvas" class="canvas" video-src="../wideo-scroll.mp4" video-src-2="../vid2.mp4" final-image="../map-with-pins.jpg" frames-src-mobile="../globe-m/" frames-count-mobile="169"></canvas>
+      <canvas id="videoCanvas" class="canvas" video-src="../wideo-scroll.mp4" video-src-2="../globe-2-vid.mp4" final-image="../map-with-pins.jpg" frames-src-mobile="../globe-m/" frames-count-mobile="169"></canvas>
       <div id="scrollShade" class="canvas_shade"></div>
       <img id="mapImage" class="map-image" src="" alt="" aria-hidden="true" />
 
       <!-- Wariant Mapbox: interaktywny globus zamiast grafiki (globe-map.js) -->
       <div id="globeMap" class="globe-map"></div>
+      <div id="globeLoader" class="globe-loader" aria-hidden="true">
+        <div class="globe-loader__ring"></div>
+        <div class="globe-loader__label">Loading dealer map</div>
+      </div>
       <!-- Telefon: powrot z kontynentu do wszystkich (panel jest wtedy schowany) -->
       <button id="globeBack" class="globe-back" type="button" hidden>&larr; All continents</button>
 
