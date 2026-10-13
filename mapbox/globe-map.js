@@ -1,9 +1,5 @@
 
 window.GlobeMap = (function () {
-  const LIB = {
-    js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
-    css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css"
-  };
   const STYLE = "mapbox://styles/kornelg3/cmup5zrur005w01skdjanduen";
 
   const START = { center: [14, 46], zoom: 3.2 };
@@ -65,36 +61,11 @@ window.GlobeMap = (function () {
     "australia": [134, -25]
   };
 
-  const DEFAULT_TOKEN = "pk.eyJ1Ijoia29ybmVsZzMiLCJhIjoiY211cXZsczA2MDFvODJ5cXh4amljdnFoOCJ9.tqLNW3kToz6EGIYgqIYhSw";
   const LOAD_TIMEOUT = 10000;
-  let token = readToken();
-  let loading = null;
   let map = null;
   let markers = [];
 
-  function readToken() {
-    try {
-      const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
-      if (fromUrl !== null) return fromUrl;
-    } catch (e) {}
-    return DEFAULT_TOKEN;
-  }
-
-  function loadLib() {
-    if (loading) return loading;
-    loading = new Promise(function (resolve, reject) {
-      const css = document.createElement("link");
-      css.rel = "stylesheet";
-      css.href = LIB.css;
-      document.head.appendChild(css);
-      const js = document.createElement("script");
-      js.src = LIB.js;
-      js.onload = resolve;
-      js.onerror = reject;
-      document.head.appendChild(js);
-    });
-    return loading;
-  }
+  function token() { return host ? host.mapbox.token() : ""; }
 
   function pinElement(cls, name, n) {
     const wrap = document.createElement("div");
@@ -341,7 +312,7 @@ window.GlobeMap = (function () {
 
   function prefetch() {
     if (FLY) return;
-    if (token) loadLib().catch(function () {});
+    if (token()) host.mapbox.load().catch(function () {});
   }
 
   function flyFrom() {
@@ -372,9 +343,9 @@ window.GlobeMap = (function () {
     if (ready) return ready;
     const el = host.dom("globeMap");
     if (!el) return Promise.reject();
-    ready = loadLib().then(function () {
+    ready = host.mapbox.load().then(function () {
       return new Promise(function (resolve, reject) {
-        window.mapboxgl.accessToken = token;
+        window.mapboxgl.accessToken = token();
         const cam = FLY ? flyFrom() : europeStart();
         map = new window.mapboxgl.Map({
           container: el,
@@ -392,10 +363,7 @@ window.GlobeMap = (function () {
 
         map.on("error", function onErr(e) {
           const err = e && e.error;
-          const s = err && err.status;
-          const url = (err && err.url) || "";
-          const fatal = s === 401 || (s === 403 && /\/styles\/v1\/[^/]+\/[^/?]+\?|\.json\?/.test(url));
-          if (fatal) {
+          if (host.mapbox.isFatal(err)) {
             map.off("error", onErr);
             reject(err);
           }
@@ -459,7 +427,7 @@ window.GlobeMap = (function () {
 
   return {
     init: init,
-    enabled: function () { return !!token && !broken; },
+    enabled: function () { return !!token() && !broken; },
     prefetch: prefetch,
     prepare: prepare,
     show: show,

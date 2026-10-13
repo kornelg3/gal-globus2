@@ -527,14 +527,57 @@
         '&copy; <a href="https://carto.com/attributions">CARTO</a>'
     },
     mapbox: {
-      js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
-      css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css",
       style: "mapbox://styles/mapbox/light-v11"
     },
     zoom: 14
   };
 
-  const MAPBOX_DEMO_TOKEN = "pk.eyJ1Ijoia29ybmVsZzMiLCJhIjoiY211cXZsczA2MDFvODJ5cXh4amljdnFoOCJ9.tqLNW3kToz6EGIYgqIYhSw";
+  const MAPBOX_TOKEN = "pk.eyJ1Ijoia29ybmVsZzMiLCJhIjoiY211cXZsczA2MDFvODJ5cXh4amljdnFoOCJ9.tqLNW3kToz6EGIYgqIYhSw";
+
+  const Mapbox = (function () {
+    const LIB = {
+      js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
+      css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css"
+    };
+    let loading = null;
+
+    function token() {
+      if (window.GALEON_MAPBOX_TOKEN) return window.GALEON_MAPBOX_TOKEN;
+      try {
+        const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
+        if (fromUrl !== null) return fromUrl;
+      } catch (e) {}
+      return MAPBOX_TOKEN;
+    }
+
+    function load() {
+      if (loading) return loading;
+      if (window.mapboxgl) return (loading = Promise.resolve());
+      loading = new Promise(function (resolve, reject) {
+        const css = document.createElement("link");
+        css.rel = "stylesheet";
+        css.href = LIB.css;
+        document.head.appendChild(css);
+        const js = document.createElement("script");
+        js.src = LIB.js;
+        js.onload = resolve;
+        js.onerror = function (e) {
+          loading = null;
+          reject(e);
+        };
+        document.head.appendChild(js);
+      });
+      return loading;
+    }
+
+    function isFatal(err) {
+      const st = err && err.status;
+      const url = (err && err.url) || "";
+      return st === 401 || (st === 403 && /\/styles\/v1\/[^/]+\/[^/?]+\?|\.json\?/.test(url));
+    }
+
+    return { token: token, load: load, isFatal: isFatal };
+  })();
 
   const MAPBOX_TIMEOUT = 6000;
 
@@ -548,19 +591,9 @@
     let mbBroken = false;
     let current = null;
 
-    function mapboxToken() {
-      if (window.GALEON_MAPBOX_TOKEN) return window.GALEON_MAPBOX_TOKEN;
-      try {
-        const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
-        if (fromUrl !== null) return fromUrl;
-      } catch (e) {}
-      return MAPBOX_DEMO_TOKEN;
-    }
-
     function loadAssets(name) {
+      if (name === "mapbox") return Mapbox.load();
       if (loading[name]) return loading[name];
-
-      if (name === "mapbox" && window.mapboxgl) return (loading[name] = Promise.resolve());
       const cfg = MAP_PROVIDER[name];
       loading[name] = new Promise(function (resolve, reject) {
         const css = document.createElement("link");
@@ -643,7 +676,7 @@
       el.appendChild(mbEl);
       mbMap = new gl.Map({
         container: mbEl,
-        accessToken: mapboxToken(),
+        accessToken: Mapbox.token(),
         style: MAP_PROVIDER.mapbox.style,
         center: [lng, lat],
         zoom: MAP_PROVIDER.zoom,
@@ -660,9 +693,7 @@
       mbMap.on("load", function () { settled = true; });
       mbMap.on("error", function (e) {
         const err = e && e.error;
-        const st = err && err.status;
-        const url = (err && err.url) || "";
-        if (st === 401 || (st === 403 && /\/styles\/v1\/[^/]+\/[^/?]+\?|\.json\?/.test(url))) giveUp("HTTP " + st);
+        if (Mapbox.isFatal(err)) giveUp("HTTP " + err.status);
       });
 
       (function check() {
@@ -678,7 +709,7 @@
       destroy();
       if (!el) return;
       current = { lat: lat, lng: lng, label: label };
-      const kind = !mbBroken && mapboxToken() ? "mapbox" : "leaflet";
+      const kind = !mbBroken && Mapbox.token() ? "mapbox" : "leaflet";
 
       loadAssets(kind).then(function () {
         if (!el.isConnected) return;
@@ -1061,7 +1092,8 @@
     goTo: dealerGoTo,
     openPanel: openDealerPanel,
     setPanelOpen: setDealerPanelOpen,
-    dom: dom
+    dom: dom,
+    mapbox: Mapbox
   });
 
   if (document.readyState === "loading") {
