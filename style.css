@@ -1,10 +1,8 @@
-/* ============================================================
-   ZMIENNE — kolory wyciągnięte z oryginału galeon.yachts
-   ============================================================ */
+
 :root {
-  --bg-white: #fbfbfb;       /* tło jasne */
-  --bg-dark:  #122938;       /* ciemny granat (gradient) */
-  --pin:      #2f7fb5;       /* kolor pinezki — jak na grafice mapy */
+  --bg-white: #fbfbfb;
+  --bg-dark:  #122938;
+  --pin:      #2f7fb5;
   --ease:     cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -16,13 +14,6 @@ html, body {
   background-color: var(--bg-white);
 }
 
-/* ============================================================
-   KOMPONENT SCROLL-VIDEO
-   ============================================================ */
-
-/* .track — wysoki kontener = "droga" scrolla.
-   400vh: animacja zajmuje pierwsze ~78%, a ostatnie ~22% to
-   "przytrzymanie" ostatniej klatki (HOLD_END w JS). */
 .track {
   position: relative;
   height: 400vh;
@@ -32,7 +23,6 @@ html, body {
   z-index: 1;
 }
 
-/* .canvas_wrapper — przyklejony do ekranu (sticky) na czas przewijania .track. */
 .canvas_wrapper {
   position: sticky;
   top: 0;
@@ -41,10 +31,9 @@ html, body {
   flex-flow: column;
   justify-content: flex-end;
   align-items: stretch;
-  overflow: hidden;          /* warstwa pinezek "cover" nie ma wystawać */
+  overflow: hidden;
 }
 
-/* .canvas — element, na którym rysowane są klatki wideo. */
 .canvas {
   position: absolute;
   inset: 0;
@@ -55,7 +44,6 @@ html, body {
   z-index: 1;
 }
 
-/* .canvas_shade — gradient przyciemniający kadr podczas pierwszego wideo. */
 .canvas_shade {
   position: absolute;
   inset: 0;
@@ -73,9 +61,6 @@ html, body {
 }
 .canvas_shade.is-hidden { opacity: 0; }
 
-/* .canvas_dim — lekkie zaciemnienie końcówki pierwszego wideo (zanim
-   pojawi się button). Krycie ustawia JS ze scrolla; po kliknięciu
-   gaśnie płynnie, bo druga animacja startuje z ciemnego kadru. */
 .canvas_dim {
   position: absolute;
   inset: 0;
@@ -89,7 +74,6 @@ html, body {
   transition: opacity 0.8s ease;
 }
 
-/* .map-image — obrazek mapy z pinami nakładany na canvas po 2. animacji. */
 .map-image {
   position: absolute;
   inset: 0;
@@ -99,12 +83,11 @@ html, body {
   display: block;
   z-index: 1;
   opacity: 0;
-  pointer-events: none;      /* kliki obsługuje warstwa .map-pins */
+  pointer-events: none;
   transition: opacity 1.2s ease;
 }
 .map-image.is-visible { opacity: 1; }
 
-/* .canvas_gradient — dekoracyjny gradient na dole kadru. */
 .canvas_gradient {
   position: absolute;
   inset: auto 0 0;
@@ -115,15 +98,7 @@ html, body {
   pointer-events: none;
 }
 
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ============================================================
-   WARSTWA PINEZEK NA MAPIE
-   Kontener dostaje z JS dokładny prostokąt, jaki zajmuje obrazek
-   przy object-fit: cover — dzięki temu pozycje w % odnoszą się
-   do obrazka, nie do okna.
-   ============================================================ */
 .map-pins {
   position: absolute;
   z-index: 3;
@@ -131,7 +106,7 @@ html, body {
   opacity: 0;
   transition: opacity 0.8s ease;
 }
-.map-pins.is-active { opacity: 1; pointer-events: none; }
+.map-pins.is-active { opacity: 1; }
 
 .map-pin {
   position: absolute;
@@ -143,7 +118,7 @@ html, body {
   border: 0;
   background: transparent;
   cursor: pointer;
-  pointer-events: auto;      /* klikalna jest sama pinezka, nie cała warstwa */
+  pointer-events: auto;
   font-family: "Galanogrotesque", "Helvetica Neue", Arial, sans-serif;
   animation: pinIn 0.5s var(--ease) both;
 }
@@ -153,7 +128,6 @@ html, body {
   to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
-/* kropka pinezki z pulsującą aureolą */
 .map-pin__dot {
   position: relative;
   width: 0.85rem;
@@ -177,7 +151,6 @@ html, body {
   100% { transform: scale(1.9); opacity: 0; }
 }
 
-/* etykieta z nazwą kraju i licznikiem — pojawia się na hover */
 .map-pin__label {
   display: inline-flex;
   align-items: center;
@@ -214,9 +187,6 @@ html, body {
   box-shadow: 0 0 0 0.35rem rgba(47, 127, 181, 0.45);
 }
 
-/* ============================================================
-   PASEK POD MAPĄ — zamknięcie mapy + wejście w listę dealerów
-   ============================================================ */
 .map-toolbar {
   position: absolute;
   left: 50%;
@@ -235,9 +205,6 @@ html, body {
   pointer-events: auto;
 }
 
-/* Button 1:1 z buttonami na galeon.yachts: pigulka, wersaliki,
-   wieksza czcionka i szeroki oddech po bokach. Wariant primary =
-   granatowe wypelnienie, ghost = biala pigulka z granatowym tekstem. */
 .map-btn {
   display: inline-flex;
   align-items: center;
@@ -257,23 +224,18 @@ html, body {
 }
 .map-btn:hover { transform: translateY(-2px); }
 
-/* glowna akcja — granatowa pigulka, jak "FIND A DEALER" na stronie */
 .map-btn--primary {
   background: #1f4a73;
   color: #fff;
 }
 .map-btn--primary:hover { background: #2a5d8d; }
 
-/* akcja drugorzedna — biala pigulka, jak "YACHTS" na stronie */
 .map-btn--ghost {
   background: #ffffff;
   color: #12293d;
 }
 .map-btn--ghost:hover { background: #eef2f5; }
 
-/* ============================================================
-   PANEL DEALERÓW — trzy poziomy: kraje › kraj › dealer
-   ============================================================ */
 .dealer-panel {
   position: fixed;
   top: 0;
@@ -293,7 +255,6 @@ html, body {
 }
 .dealer-panel.is-open { transform: translateX(0); }
 
-/* górny pasek panelu: cofnij o poziom + okruszek + zamknij */
 .dealer-panel__bar {
   flex-shrink: 0;
   display: flex;
@@ -322,8 +283,6 @@ html, body {
 .dealer-panel__back:hover { background: rgba(255, 255, 255, 0.1); }
 .dealer-panel__back[hidden] { display: none; }
 
-/* Okruszek lamie sie na kolejne linie zamiast wchodzic pod X;
-   lamanie tylko przy separatorach "›" (spacje w nazwach sa nierozdzielne). */
 .dealer-panel__crumb {
   flex: 1;
   min-width: 0;
@@ -350,7 +309,6 @@ html, body {
 }
 .dealer-panel__close:hover { background: rgba(255, 255, 255, 0.18); }
 
-/* obszar przewijany */
 .dealer-panel__body {
   flex: 1;
   overflow-y: auto;
@@ -389,7 +347,6 @@ html, body {
   color: rgba(255, 255, 255, 0.72);
 }
 
-/* --- lista (kraje albo dealerzy) --- */
 .dealer-list { list-style: none; margin: 0; padding: 0; }
 
 .dealer-row {
@@ -445,11 +402,6 @@ html, body {
 }
 .dealer-row:hover .dealer-row__arrow { transform: translateX(0.3rem); color: #fff; }
 
-/* --- widok pojedynczego dealera --- */
-
-/* Zbliżony wycinek mapy. Ten sam plik co mapa globalna, powiększony
-   przez background-size; background-position (w %) ustawia JS na
-   pozycję dealera. Docelowo: statyczny kafel mapy albo osadzona mapa. */
 .dealer-detail__map {
   position: relative;
   width: 100%;
@@ -462,10 +414,9 @@ html, body {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* wariant interaktywny: Mapbox GL. Ten sam token i styl co na produkcji. */
 .dealer-detail__map.is-live {
   aspect-ratio: 4 / 3;
-  background: #e8e8e4;   /* kolor tla Positrona, zanim wejda kafelki */
+  background: #e8e8e4;
 }
 .dealer-detail__map.is-loading::after {
   content: "Loading map…";
@@ -492,7 +443,6 @@ html, body {
   color: rgba(255, 180, 180, 0.7);
 }
 
-/* pinezka dealera na mapie (Leaflet divIcon — zero dodatkowych requestow) */
 .dealer-map-pin__dot {
   display: block;
   width: 1.1rem;
@@ -503,9 +453,6 @@ html, body {
   box-shadow: 0 0 0 0.3rem rgba(47, 127, 181, 0.35);
 }
 
-/* Leaflet i Mapbox wstrzykuja wlasne style — domykamy to, co odstaje w panelu. */
-/* jasny podklad (Positron) — domyslne kontrolki Leafleta pasuja,
-   dociagamy tylko wielkosc atrybucji i kolor tekstu zoomu */
 .dealer-detail__map .leaflet-control-attribution {
   font-size: 0.6rem;
   background: rgba(255, 255, 255, 0.85);
@@ -549,7 +496,6 @@ html, body {
 .dealer-detail a { color: #8fc9ee; text-decoration: none; }
 .dealer-detail a:hover { text-decoration: underline; }
 
-/* linki pod danymi kontaktowymi: strona dealera + dojazd w Mapach Google */
 .dealer-detail__links {
   display: flex;
   flex-wrap: wrap;
@@ -579,7 +525,6 @@ html, body {
 }
 .dealer-detail__link.is-secondary:hover { background: rgba(255, 255, 255, 0.1); }
 
-/* Share to <button>, nie <a> — zerujemy domyslny wyglad przycisku. */
 button.dealer-detail__link {
   font-family: inherit;
   cursor: pointer;

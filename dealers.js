@@ -1,21 +1,3 @@
-/* ============================================================
-   DANE DEALEROW — pobrane z produkcyjnego globusa na galeon.yachts
-   (strona glowna, sekcja #globe-section, dwie strony paginacji CMS).
-
-   Struktura: kontynent -> kraj -> dealer. Dokladnie ta sama hierarchia,
-   ktora ma panel: wszyscy -> kontynent -> kraj -> dealer.
-
-   pos.x / pos.y  = pozycja pinezki KONTYNENTU na map-with-pins.jpg,
-                    w procentach szerokosci / wysokosci obrazka.
-                    Ustawione recznie — grafika mapy nie ma potwierdzonego
-                    rzutu, wiec pinezek nie da sie policzyc ze wspolrzednych.
-                    lat / lng krajow sa w danych i czekaja na moment,
-                    w ktorym rzut bedzie znany.
-
-   Dwie rzeczy odziedziczone po zrodle, do poprawienia w Webflow:
-   - Meksyk ma przypisany kontynent "South America"
-   - "UAE" i "United Arab Emirates" to dwa osobne kraje
-   ============================================================ */
 
 window.DEALERS = [
   {

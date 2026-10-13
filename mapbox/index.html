@@ -16,17 +16,14 @@
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 
-
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:url" content="https://galeonconfigurator.pl/" />
 <meta name="twitter:title" content="Galeon Yachts — Virtual Tour" />
 <meta name="twitter:description" content="Step aboard Galeon yachts in immersive 3D. Walk through every deck, discover the details, and experience the craftsmanship before you ever set foot on board." />
 <meta name="twitter:image" content="https://galeonconfigurator.pl/Galeon-570-hero.jpg" />
 
-
 <link href="https://cdn.prod.website-files.com/6809e14c25e5cac9d89f62fe/6821b4bb9a7889acc6a02f8e_galeon-favicon.png" rel="icon" type="image/png">
 <link rel="apple-touch-icon" href="https://cdn.prod.website-files.com/6809e14c25e5cac9d89f62fe/6864be9683c69b75e0fc559e_galeon-webclip.png" />
-
 
 <script type="application/ld+json">
 {
@@ -44,7 +41,7 @@
 <link rel="stylesheet" href="../style.css">
 
 <style>
-  
+
   @font-face {
     font-family: Galanogrotesque;
     src: url("https://cdn.prod.website-files.com/6809e14c25e5cac9d89f62fe/68219672611e9e3df776a3d8_Galano%20Grotesque.otf") format("opentype");
@@ -74,14 +71,12 @@
     font-display: swap;
   }
 
-  
   html { font-size: 1rem; }
   @media screen and (max-width:1440px) { html { font-size: calc(0.39866369710467703rem + 0.6681514476614699vw); } }
   @media screen and (max-width:991px)  { html { font-size: calc(0.1704799107142858rem + 1.3392857142857142vw); } }
   @media screen and (max-width:767px)  { html { font-size: calc(0.6671006944444444rem + 0.6944444444444444vw); } }
   @media screen and (max-width:479px)  { html { font-size: calc(0.8747384937238494rem + 0.41841004184100417vw); } }
 
-  
   :root {
     --color-bg:      #f5f5f3;
     --color-white:   #ffffff;
@@ -94,7 +89,6 @@
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
- 
   *, *::before, *::after { box-sizing: border-box; }
 
   body {
@@ -112,7 +106,6 @@
   img { display: block; max-width: 100%; height: auto; }
   a   { color: inherit; text-decoration: none; }
 
-  
   .site-header {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -130,13 +123,11 @@
   }
   .logo:hover { opacity: 0.65; }
 
-  
   .logo img {
     height: 1.5rem;
     width: auto;
   }
 
-  
   .hero {
     position: relative;
     min-height: 52vh;
@@ -151,7 +142,6 @@
       url("../Galeon-570-hero.jpg") center / cover no-repeat;
   }
 
-  /* vignette */
   .hero::after {
     content: "";
     position: absolute;
@@ -168,18 +158,7 @@
     animation: fadeUp 1s var(--ease) 0.1s both;
   }
 
-  
-  .hero__eyebrow {
-    display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.75);
-    margin-bottom: 1.25rem;
-  }
 
- 
 .hero__heading {
   font-family: var(--font-display);
   font-weight: 400;
@@ -199,7 +178,6 @@
     color: rgba(255,255,255,0.78);
   }
 
-
   .models {
     padding: 4rem 2.5rem 6rem;
     background: var(--color-bg);
@@ -210,7 +188,6 @@
     margin: 0 auto 2.5rem;
     text-align: center;
   }
-
 
 .models__heading {
   font-family: var(--font-display);
@@ -231,7 +208,6 @@
     gap: 1.5rem;
   }
 
-  
   .model-card {
     display: block;
     background: var(--color-white);
@@ -280,7 +256,6 @@
     border-top: 1px solid var(--color-line);
   }
 
-  /* card name: same display style — uppercase weight 400 */
 .model-card__name {
   font-family: var(--font-display);
   font-weight: 400;
@@ -314,8 +289,6 @@
     transform: translateX(0.35rem);
   }
 
-
-  /* ---- Footer (matches site palette + display font) ---- */
   .site-footer {
     background: var(--color-navy);
     color: rgba(255,255,255,0.78);
@@ -375,9 +348,6 @@
     max-width: 32rem;
   }
 
-  /* ---- Ekran koncowy scroll-wideo: naglowek + button ----
-     Button dziedziczy wyglad po .map-btn--ghost (style.css). Tutaj
-     zostaje wylacznie ustawienie na srodku kadru i pokazywanie. */
   .end-cta {
     position: fixed;
     top: 50%;
@@ -391,7 +361,7 @@
     gap: 1.4rem;
     text-align: center;
     opacity: 0;
-    pointer-events: none;            /* nieklikalny dopoki ukryty */
+    pointer-events: none;
     transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
   }
 
@@ -429,7 +399,6 @@
   .reveal.delay-1 { transition-delay: 0.10s; }
   .reveal.delay-2 { transition-delay: 0.22s; }
 
-
   @media (max-width: 860px) {
     .site-header      { padding: 1.25rem 1.5rem; }
     .hero             { padding: 5.5rem 1.5rem 2.5rem; min-height: 44vh; }
@@ -446,9 +415,7 @@
       transition-duration: 0.01ms !important;
     }
   }
-  /* ---- Wariant Mapbox: globus w miejscu grafiki mapy ---- */
-  /* .canvas_wrapper w selektorze: mapbox-gl.css daje .mapboxgl-map
-     position: relative, co zbijaloby kontener do 0 px wysokosci. */
+
   .canvas_wrapper .globe-map {
     position: absolute;
     inset: 0;
@@ -460,12 +427,8 @@
   }
   .globe-map.is-visible { opacity: 1; pointer-events: auto; }
 
-  /* Telefon: panel dealerow jako arkusz od dolu, mapa zostaje widoczna
-     nad nim. aside.* — wygrywa z regulami .dealer-panel w style.css. */
   .globe-back { display: none; }
 
-  /* Dotyk: niewidoczna etykieta pinezki nie moze lapac klikniec —
-     w gestej Europie zaslanialaby sasiednie kropki. */
   @media (hover: none) {
     .globe-pin .map-pin__label { pointer-events: none; }
   }
@@ -504,25 +467,20 @@
     .globe-back[hidden] { display: none; }
   }
   .globe-pin { width: 0; height: 0; }
-  /* srodek KROPKI (0.85rem) na wspolrzednej, etykieta wychodzi w prawo */
-  /* Pinezki na globusie. Srodek KROPKI na wspolrzednej (left = -pol kropki),
-     etykieta wychodzi w prawo i pokazuje sie na hover.
-     Kontrast: niebieska kropka ginie wsrod pomaranczowych swiatel miast,
-     dlatego kazda ma cienka biala obwodke i delikatna poswiate. */
+
   .globe-pin .map-pin { top: 0; transform: translateY(-50%); animation: none; }
   .globe-pin .map-pin__dot {
     border: 2px solid rgba(255, 255, 255, 0.92);
     box-shadow: 0 0 0 0.25rem rgba(47, 127, 181, 0.35), 0 0 0.9rem rgba(80, 170, 235, 0.55);
   }
-  /* kontynent — najwiekszy, z pulsem */
+
   .globe-pin .map-pin--continent { left: -0.6rem; }
   .map-pin--continent .map-pin__dot { width: 1.2rem; height: 1.2rem; }
-  /* kraj — sredni, bez pulsu (w Europie jest ich 31) */
+
   .globe-pin .map-pin--country { left: -0.475rem; }
   .map-pin--country .map-pin__dot { width: 0.95rem; height: 0.95rem; }
   .map-pin--country .map-pin__dot::after { display: none; }
-  /* dealer — odwrocone kolory: biala kropka z niebieskim rdzeniem,
-     zeby bylo widac, ze to inny poziom niz kraj */
+
   .globe-pin .map-pin--dealer { left: -0.5rem; }
   .map-pin--dealer .map-pin__dot {
     width: 1rem; height: 1rem;
@@ -539,7 +497,7 @@
   }
   .map-pin.is-active .map-pin__label { opacity: 1; transform: translateX(0); }
   .globe-pin:hover { z-index: 2; }
-  /* Ekran wczytywania — w /mapbox/ tylko przy wejsciu z linku ?dealer=... */
+
   .globe-loader {
     position: absolute;
     inset: 0;
@@ -577,7 +535,6 @@
 </head>
 <body>
 
-
   <header class="site-header">
     <a class="logo" href="https://www.galeon.yachts/" aria-label="Galeon Yachts homepage">
       <img
@@ -588,10 +545,9 @@
     </a>
   </header>
 
- 
   <section class="hero" aria-labelledby="hero-heading">
     <div class="hero__inner">
-       
+
       <h1 class="hero__heading" id="hero-heading">
         Step aboard<br>virtually
       </h1>
@@ -600,7 +556,6 @@
       </p>
     </div>
   </section>
-
 
   <section class="models" aria-labelledby="models-heading">
     <div class="models__head">
@@ -611,7 +566,6 @@
 
     <div class="models__grid">
 
-      <!-- 520 FLY -->
       <a class="model-card reveal delay-1"
          href="https://galeonconfigurator.pl/520fly/"
          aria-label="Take the virtual tour of the Galeon 520 FLY">
@@ -630,7 +584,6 @@
         </div>
       </a>
 
-      <!-- 570 SKY -->
       <a class="model-card reveal delay-2"
          href="https://galeonconfigurator.pl/570sky/"
          aria-label="Take the virtual tour of the Galeon 570 SKY">
@@ -652,35 +605,29 @@
     </div>
   </section>
 
-
-  <div class="track" data-scroll-container>
+  <div class="track">
     <div class="canvas_wrapper">
       <canvas id="videoCanvas" class="canvas" video-src="../wideo-scroll.mp4" video-src-2="../globe-2-vid.mp4" final-image="../map-with-pins.jpg" frames-src-mobile="../globe-m/" frames-count-mobile="169"></canvas>
       <div id="scrollShade" class="canvas_shade"></div>
       <img id="mapImage" class="map-image" src="" alt="" aria-hidden="true" />
 
-      <!-- Wariant Mapbox: interaktywny globus zamiast grafiki (globe-map.js) -->
       <div id="globeMap" class="globe-map"></div>
       <div id="globeLoader" class="globe-loader" aria-hidden="true">
         <div class="globe-loader__ring"></div>
         <div class="globe-loader__label">Loading dealer map</div>
       </div>
-      <!-- Telefon: powrot z kontynentu do wszystkich (panel jest wtedy schowany) -->
+
       <button id="globeBack" class="globe-back" type="button" hidden>&larr; All continents</button>
 
-      <!-- Klikalne pinezki krajow. Pozycje i rozmiar warstwy ustawia JS
-           (MapPins.layout) tak, zeby pokrywala sie z obrazkiem mapy. -->
       <div id="mapPins" class="map-pins"></div>
 
       <div class="canvas_gradient"></div>
 
-      <!-- Ekran koncowy scrolla: naglowek + button (design z Figmy) -->
       <div id="endCta" class="end-cta">
         <h2 class="end-cta__heading">Choose The Closest Dealer From Our Distribution Network</h2>
         <button id="endButton" class="map-btn map-btn--ghost" type="button">Find a dealer</button>
       </div>
 
-      <!-- Pasek widoczny dopiero, gdy mapa jest na ekranie. -->
       <div id="mapToolbar" class="map-toolbar">
         <button id="backToGlobe" class="map-btn map-btn--ghost" type="button">Close map</button>
         <button id="openAllDealers" class="map-btn map-btn--primary" type="button">Find a dealer</button>
@@ -688,7 +635,6 @@
     </div>
   </div>
 
-  <!-- Wysuwany panel dealerow: kraje &rsaquo; kraj &rsaquo; dealer -->
   <aside id="dealerPanel" class="dealer-panel" aria-hidden="true" aria-label="Dealer locations">
     <div class="dealer-panel__bar">
       <button id="dealerPanelBack" class="dealer-panel__back" type="button" hidden>&larr; Back</button>
@@ -697,7 +643,6 @@
     </div>
     <div id="dealerPanelBody" class="dealer-panel__body"></div>
   </aside>
-
 
   <footer class="site-footer">
     <div class="site-footer__inner">

@@ -1,52 +1,24 @@
-/* ============================================================
-   GLOBUS MAPBOX — wariant makiety pod /mapbox/.
 
-   Po drugiej animacji (vid2) zamiast map-with-pins.jpg wchodzi
-   interaktywny globus Mapboxa ze stylem "galeon-night-nasa"
-   (prywatne konto testowe kornelg3). Start: pinezki kontynentow.
-   Klik w kontynent przybliza mape i zamienia jego pinezke na
-   pinezki krajow; klik w kraj otwiera jego dealerow w panelu.
-   Mapa idzie za panelem (sync), panel za mapa (klik w pinezke).
-
-   Biblioteka Mapbox GL (~340 KB) dociaga sie dopiero po kliknieciu
-   "Find a dealer" — nic nie leci przy wejsciu na strone.
-
-   Token publiczny jest wpisany na stale (DEFAULT_TOKEN, 02.10.2026 —
-   zmiana decyzji 19). Na koncie Mapbox ma URL restrictions:
-   kornelg3.github.io/gal-globus2 i localhost:8765 — z innych adresow
-   Mapbox zwraca 403. Inny token mozna podac w adresie ?mbtoken=pk...,
-   a pusty ?mbtoken= wylacza wariant (strona jak wersja ze zdjeciem).
-   Gdy mapa sie nie wczyta (zly token, brak sieci) — wchodzi zdjecie.
-   ============================================================ */
 window.GlobeMap = (function () {
   const LIB = {
     js: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.js",
     css: "https://api.mapbox.com/mapbox-gl-js/v3.14.0/mapbox-gl.css"
   };
   const STYLE = "mapbox://styles/kornelg3/cmup5zrur005w01skdjanduen";
-  // Kadr startowy: Europa z bliska, jak na map-with-pins.jpg.
-  // Na telefonie ten sam zoom pokazuje wycinek Europy — tam z daleka.
+
   const START = { center: [14, 46], zoom: 3.2 };
   const START_MOBILE = { center: [14, 46], zoom: 1.7 };
 
-  /* Wariant /mapbox-fly/ (window.GLOBE_FLY): bez vid2. Mapa startuje
-     z daleka (maly globus, mniej obrocony), po wczytaniu kamera najezdza
-     i dokreca sie na kadr. Konczy na oddaleniu (FLY_ZOOM), zeby nie
-     ciagnac kafelkow wysokiej rozdzielczosci — blizej dopiero po kliku
-     w kontynent. Bez wczesniejszego pobierania czegokolwiek z Mapboxa. */
   const FLY = !!window.GLOBE_FLY;
   const FLY_FROM_ZOOM = 0.4;
-  const FLY_ZOOM = 2.0;          // desktop; telefon zostaje przy 1,7
-  const FLY_SPIN = 70;           // o tyle stopni dlugosci globus sie dokreca
+  const FLY_ZOOM = 2.0;
+  const FLY_SPIN = 70;
   const FLY_MS = 2600;
   if (FLY) START.zoom = FLY_ZOOM;
 
-  /* Telefon (szerokosc panelu 100vw): panel wysuwa sie od dolu i dopiero
-     po wyborze KRAJU. Klik w kontynent tylko przybliza mape i pokazuje
-     pinezki krajow — lista nie zaslania mapy. */
   const mobileMQ = window.matchMedia("(max-width: 860px)");
   function isMobile() { return mobileMQ.matches; }
-  // Kadr Europy — tu konczy sie druga animacja, wiec mapa wchodzi w nim.
+
   function europeStart() { return isMobile() ? START_MOBILE : START; }
   function start() {
     const base = europeStart();
@@ -55,9 +27,6 @@ window.GlobeMap = (function () {
     return ll ? { center: ll, zoom: base.zoom } : base;
   }
 
-  /* Kontynent startowy ze strefy czasowej urzadzenia (np. "Europe/Warsaw").
-     Bez pytania o zgode i bez zadnego zapytania do sieci — przegladarka
-     zna strefe sama. Dokladnosc: kontynent. Nieznana strefa → Europa. */
   const SOUTH_AM = /^America\/(Argentina|Sao_Paulo|Santiago|Bogota|Lima|Caracas|Montevideo|Asuncion|La_Paz|Guayaquil|Cayenne|Paramaribo|Guyana|Recife|Fortaleza|Belem|Manaus|Bahia|Maceio|Cuiaba|Campo_Grande|Porto_Velho|Boa_Vista|Rio_Branco|Araguaina|Santarem|Noronha|Punta_Arenas)/;
   const CENTRAL_AM = /^America\/(Guatemala|Belize|El_Salvador|Tegucigalpa|Managua|Costa_Rica|Panama|Havana|Jamaica|Port-au-Prince|Santo_Domingo|Puerto_Rico|Barbados|Martinique|Guadeloupe|Nassau|Cancun|Merida|Mexico_City|Monterrey|Tijuana|Chihuahua|Hermosillo|Mazatlan|Bahia_Banderas|Matamoros)/;
   function continentFromTimezone() {
@@ -72,7 +41,7 @@ window.GlobeMap = (function () {
     if (/^(America|US|Canada)\//.test(tz)) return "north-america";
     return null;
   }
-  // Czy przy biezacym poziomie panel zaslania mape (wplywa na kadr).
+
   let withPanel = false;
 
   function panelEl() { return document.getElementById("dealerPanel"); }
@@ -82,12 +51,10 @@ window.GlobeMap = (function () {
     p.classList.toggle("is-open", open);
     p.setAttribute("aria-hidden", open ? "false" : "true");
   }
-  // Najblizej, jak podjezdza kamera. Ostre zdjecie NASA Europy konczy sie
-  // na z8 (decyzja 23) — dalej podklad robi sie rozmyty.
-  const MAX_ZOOM = 8;       // szczegol dealera
-  const COUNTRY_ZOOM = 5.5; // widok kraju — caly kraj w kadrze
 
-  // Srodki kontynentow [lng, lat] — tylko do pinezek, nie do danych.
+  const MAX_ZOOM = 8;
+  const COUNTRY_ZOOM = 5.5;
+
   const CONTINENT_LNGLAT = {
     "europe": [12, 50],
     "north-america": [-98, 40],
@@ -99,7 +66,7 @@ window.GlobeMap = (function () {
   };
 
   const DEFAULT_TOKEN = "pk.eyJ1Ijoia29ybmVsZzMiLCJhIjoiY211cXZsczA2MDFvODJ5cXh4amljdnFoOCJ9.tqLNW3kToz6EGIYgqIYhSw";
-  const LOAD_TIMEOUT = 10000;   // ms od konca animacji; potem zdjecie
+  const LOAD_TIMEOUT = 10000;
   let token = readToken();
   let loading = null;
   let map = null;
@@ -107,9 +74,6 @@ window.GlobeMap = (function () {
 
   function readToken() {
     try {
-      // Stary zapis z localStorage (do 01.10) — sprzatamy, zeby zly token
-      // zapamietany kiedys w przegladarce nie blokowal mapy.
-      window.localStorage.removeItem("galeon_mapbox_token");
       const fromUrl = new URLSearchParams(window.location.search).get("mbtoken");
       if (fromUrl !== null) return fromUrl;
     } catch (e) {}
@@ -132,7 +96,6 @@ window.GlobeMap = (function () {
     return loading;
   }
 
-  // n === null — pinezka bez licznika (pojedynczy dealer).
   function pinElement(cls, name, n) {
     const wrap = document.createElement("div");
     wrap.className = "globe-pin";
@@ -147,12 +110,6 @@ window.GlobeMap = (function () {
     return wrap;
   }
 
-  /* Trzy poziomy pinezek, zawsze widoczny tylko jeden zestaw:
-     - kontynenty (7) — widok startowy,
-     - kraje — dla kontynentu wybranego w panelu,
-     - dealerzy — dla kraju wybranego w panelu (wlasne wspolrzedne,
-       130 ze 133); pozostale kraje kontynentu zostaja, zeby dalo sie
-       przeskoczyc do sasiada bez cofania. */
   function addMarkers() {
     (window.DEALERS || []).forEach(function (cont) {
       const ll = CONTINENT_LNGLAT[cont.id];
@@ -195,10 +152,6 @@ window.GlobeMap = (function () {
     });
   }
 
-  // Margines kadru: przy wybranym kontynencie panel dealerow jest zawsze
-  // otwarty i zaslania prawa czesc mapy. Nie sprawdzamy klasy is-open —
-  // panel dostaje ja dopiero PO pierwszym sync().
-  // Telefon: panel zaslania dol ekranu (wysokosc), desktop: prawa strone.
   function padding(withPanel) {
     const panel = panelEl();
     if (isMobile()) {
@@ -209,7 +162,6 @@ window.GlobeMap = (function () {
     return { top: 110, bottom: 150, left: 120, right: w + 120 };
   }
 
-  // Kadr na zestaw pinezek; jedna pinezka = przelot na nia.
   function frame(list, maxZoom) {
     if (!list.length) return false;
     if (list.length === 1) {
@@ -223,10 +175,6 @@ window.GlobeMap = (function () {
     return true;
   }
 
-  /* PODSWIETLENIE wybranego kontynentu / kraju — delikatne wypelnienie
-     + jasniejsza granica. Obrysy z darmowego tilesetu Mapbox Countries
-     (mapbox.country-boundaries-v1): kafelki w ramach tego samego
-     wczytania mapy, bez dodatkowych kosztow. */
   const ISO = {
     "austria": "AT", "belgium": "BE", "bulgaria": "BG", "croatia": "HR", "cyprus": "CY",
     "czech-republic": "CZ", "denmark": "DK", "finland": "FI", "france": "FR", "germany": "DE",
@@ -243,14 +191,12 @@ window.GlobeMap = (function () {
     "united-arab-emirates": "AE", "uae": "AE", "vietnam": "VN", "egypt": "EG", "morocco": "MA",
     "seychelles": "SC", "australia": "AU", "new-zealand": "NZ"
   };
-  // Ameryka Srodkowa + Karaiby (w danych Mapboxa to jeden subregion
-  // "Latin America and the Caribbean" razem z Ameryka Poludniowa).
+
   const CENTRAL_AM_ISO = ["MX", "BZ", "GT", "SV", "HN", "NI", "CR", "PA", "CU", "JM", "HT", "DO",
     "PR", "BS", "BB", "TT", "AG", "DM", "GD", "KN", "LC", "VC", "KY", "TC", "VG", "VI", "AW",
     "CW", "SX", "BQ", "MF", "BL", "GP", "MQ", "AI", "MS"];
   const ISO_PROP = ["get", "iso_3166_1"];
   const REGION = {
-    // Rosja jest u ONZ w Europie — bez wykluczenia swieci sie cala Syberia.
     "europe": ["all", ["==", ["get", "region"], "Europe"], ["!=", ISO_PROP, "RU"]],
     "asia": ["==", ["get", "region"], "Asia"],
     "africa": ["==", ["get", "region"], "Africa"],
@@ -260,7 +206,7 @@ window.GlobeMap = (function () {
     "south-america": ["all", ["==", ["get", "subregion"], "Latin America and the Caribbean"],
       ["!", ["in", ISO_PROP, ["literal", CENTRAL_AM_ISO]]]]
   };
-  // Tylko oficjalne granice, w wersji dla odbiorcy "US"/"all" (bez dublowania).
+
   const BASE_FILTER = ["all", ["==", ["get", "disputed"], "false"],
     ["any", ["==", "all", ["get", "worldview"]], ["in", "US", ["get", "worldview"]]]];
 
@@ -269,9 +215,6 @@ window.GlobeMap = (function () {
     return cont ? (cont.countries || []).map(function (c) { return ISO[c.id]; }).filter(Boolean) : [];
   }
 
-  /* Kontynent = jego region ze swiata + nasze kraje przypisane do niego
-     (np. Cypr jest u nas w Europie, u ONZ w Azji), minus nasze kraje
-     przypisane gdzie indziej. */
   function highlightFilter(contId, countryId) {
     if (countryId) return ["all", BASE_FILTER, ["==", ISO_PROP, ISO[countryId] || "--"]];
     if (!contId || !REGION[contId]) return ["==", "1", "0"];
@@ -284,9 +227,8 @@ window.GlobeMap = (function () {
   }
 
   function addHighlightLayers() {
-    // Nazwa "hl-countries": styl na koncie ma juz wlasne zrodlo "countries".
     map.addSource("hl-countries", { type: "vector", url: "mapbox://mapbox.country-boundaries-v1" });
-    // Pod etykietami stylu — nazwy miast i krajow zostaja czytelne.
+
     const firstSymbol = (map.getStyle().layers || []).find(function (l) { return l.type === "symbol"; });
     const before = firstSymbol ? firstSymbol.id : undefined;
     map.addLayer({ id: "hl-fill", type: "fill", source: "hl-countries", "source-layer": "country_boundaries",
@@ -304,14 +246,8 @@ window.GlobeMap = (function () {
     map.setFilter("hl-line", f);
   }
 
-  /* Palec trafia obok kropki — klik w mape (nie w pinezke) wybiera
-     NAJBLIZSZA widoczna pinezke w promieniu HIT_RADIUS px. Lepsze niz
-     powiekszanie obszarow: przy gestych pinezkach wygrywa najblizsza,
-     a nie ta, ktora lezy wyzej w DOM. */
-  // Palec jest mniej precyzyjny niz kursor — na dotyku wiekszy promien.
   const HIT_RADIUS = window.matchMedia("(hover: none)").matches ? 48 : 30;
   function pickNearestPin(e) {
-    // Trafienie prosto w pinezke obsluguje jej wlasny listener.
     const t = e.originalEvent && e.originalEvent.target;
     if (t && t.closest && t.closest(".globe-pin")) return;
     let best = null;
@@ -327,16 +263,12 @@ window.GlobeMap = (function () {
 
   let shownKey = "";
 
-  /* sync(nav) — wolane przez panel przy kazdej zmianie widoku.
-     Przelacza pinezki, a kamere rusza tylko przy zmianie poziomu. */
   function sync(nav) {
     if (!map || !markers.length) return;
     const contId = (nav && nav.continentId) || null;
     const countryId = (contId && nav.countryId) || null;
     const dealerIdx = countryId && nav.view === "dealer" ? nav.dealerIndex : null;
 
-    // Telefon: na poziomie kontynentu panel chowamy (np. po "Back" z kraju),
-    // a wrocic do wszystkich kontynentow pozwala chip nad mapa.
     if (isMobile()) {
       withPanel = !!countryId;
       if (nav && nav.view === "continent") setPanelOpen(false);
@@ -348,8 +280,7 @@ window.GlobeMap = (function () {
 
     markers.forEach(function (m) {
       let visible;
-      // Pinezki POZOSTALYCH kontynentow zostaja na kazdym poziomie —
-      // mozna przeskoczyc na inny kontynent bez cofania w panelu.
+
       if (m.kind === "continent") visible = m.continentId !== contId;
       else if (!contId) visible = false;
       else if (!countryId) visible = m.kind === "country" && m.continentId === contId;
@@ -380,9 +311,6 @@ window.GlobeMap = (function () {
       return;
     }
     if (countryId) {
-      // Kraj: kadr na jego dealerow; bez wspolrzednych — na srodek kraju.
-      // Limit COUNTRY_ZOOM: gdy dealerzy stoja blisko siebie (Polska,
-      // Norwegia), kadr nie moze zjechac do wycinka kraju.
       if (!frame(pick(function (m) { return m.kind === "dealer" && m.countryId === countryId; }), COUNTRY_ZOOM)) {
         frame(pick(function (m) { return m.kind === "country" && m.countryId === countryId; }), COUNTRY_ZOOM);
       }
@@ -391,12 +319,6 @@ window.GlobeMap = (function () {
     frameContinent(contId, pick(function (m) { return m.kind === "country" && m.continentId === contId; }));
   }
 
-  /* Kadr kontynentu = jego staly prostokat [[W, S], [E, N]] rozszerzony
-     o pinezki krajow. Sam kadr po pinezkach przyblizal za mocno, gdy
-     krajow jest malo (Ameryka Pn.: tylko USA i Kanada). */
-  // Prostokaty dobrane pod kadr Europy z pinezek (zoom ~3 na 1280 px),
-  // ktory Uzytkownik zaakceptowal. Za duze (cala Europa po Ural, cala
-  // Ameryka z Alaska) oddalaly kamere do zoomu ~1,6.
   const CONTINENT_BOUNDS = {
     "europe": [[-10, 35], [34, 62]],
     "north-america": [[-125, 25], [-65, 58]],
@@ -414,18 +336,11 @@ window.GlobeMap = (function () {
     map.fitBounds(b, { padding: padding(withPanel), maxZoom: 5, duration: 1400 });
   }
 
-  /* Ladowanie w trzech krokach, zeby nie czekac po kolei:
-       prefetch() — sam plik biblioteki (gdy pojawia sie button
-                    "Find a dealer"); NIE tworzy mapy, wiec nie nabija
-                    wczytan w Mapboxie,
-       prepare()  — tworzy mape w tle (klik w button, rownolegle
-                    z druga animacja); to jest wczytanie platne,
-       show()     — po animacji: pokazuje mape, gdy jest gotowa. */
-  let ready = null;   // Promise: mapa utworzona i po "load"
-  let broken = false; // mapa sie nie wczytala — do konca wizyty zdjecie
+  let ready = null;
+  let broken = false;
 
   function prefetch() {
-    if (FLY) return;   // fly: nic z Mapboxa przed kliknieciem
+    if (FLY) return;
     if (token) loadLib().catch(function () {});
   }
 
@@ -438,15 +353,10 @@ window.GlobeMap = (function () {
     map.jumpTo(flyFrom());
     map.easeTo(Object.assign({}, start(), {
       duration: FLY_MS,
-      easing: function (t) { return 1 - Math.pow(1 - t, 3); }   // easeOutCubic
+      easing: function (t) { return 1 - Math.pow(1 - t, 3); }
     }));
   }
 
-  /* Po drugiej animacji mapa wchodzi w kadrze Europy (ostatnia klatka
-     filmu), a po krotkiej pauzie kamera przelatuje na kontynent ze
-     strefy czasowej — przy tym samym przyblizeniu. Uzytkownik z Europy
-     nie widzi ruchu. Przelot odpada, gdy w pauzie cos juz wybrano
-     (klik, link ?dealer=...) albo uzytkownik sam ruszyl mape. */
   const HOME_PAUSE = 500;
   const HOME_FLY_MS = 2000;
   function flyToUser() {
@@ -479,9 +389,7 @@ window.GlobeMap = (function () {
           dealerGoTo("continents", { continentId: null, countryId: null });
         });
         map.on("click", pickNearestPin);
-        // Zly token (401) albo brak dostepu do stylu/zrodla (403 na .json
-        // lub /styles/). Pojedynczy kafelek z 403 NIE przerywa — Mapbox
-        // potrafi chwile serwowac zapamietane 403 po zmianie restrykcji.
+
         map.on("error", function onErr(e) {
           const err = e && e.error;
           const s = err && err.status;
@@ -499,8 +407,7 @@ window.GlobeMap = (function () {
         });
       });
     });
-    // Po porazce NIE probujemy ponownie (kazda proba = kolejne platne
-    // wczytanie) — do odswiezenia strony zostaje wersja ze zdjeciem.
+
     ready.catch(function () {
       broken = true;
       if (map) { map.remove(); map = null; markers = []; }
@@ -516,8 +423,7 @@ window.GlobeMap = (function () {
       if (onFail) onFail();
       return;
     }
-    // Mapa nie przyszla na czas albo blad — zdjecie zamiast stania na
-    // ostatniej klatce animacji. Spozniona mapa juz sie nie pokazuje.
+
     let settled = false;
     function fail() {
       if (settled) return;
@@ -530,11 +436,11 @@ window.GlobeMap = (function () {
       clearTimeout(timer);
       if (settled) return;
       settled = true;
-      if (shownOnce) {       // drugi raz po "Close map" — mapa juz jest
+      if (shownOnce) {
         sync(null);
-        map.jumpTo(FLY ? start() : europeStart());
+        if (!FLY) map.jumpTo(europeStart());
       }
-      map.resize();          // kontener mogl zmienic rozmiar, gdy mapa byla ukryta
+      map.resize();
       if (FLY) flyIn();
       shownOnce = true;
       el.classList.add("is-visible");
@@ -558,6 +464,6 @@ window.GlobeMap = (function () {
     show: show,
     hide: hide,
     sync: sync,
-    map: function () { return map; }   // do testow w konsoli
+    map: function () { return map; }
   };
 })();
