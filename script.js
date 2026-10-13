@@ -1,4 +1,34 @@
 (function () {
+  const CONFIG = Object.assign({
+    track: ".gd-track",
+    canvas: "#gdVideoCanvas",
+    shade: "#scrollShade",
+    mapImage: "#mapImage",
+    mapPins: "#mapPins",
+    endCta: "#endCta",
+    endButton: "#endButton",
+    mapToolbar: "#mapToolbar",
+    closeMap: "#backToGlobe",
+    openAll: "#openAllDealers",
+    loader: "#globeLoader",
+    globeMap: "#globeMap",
+    globeBack: "#globeBack",
+    panel: "#dealerPanel",
+    panelBody: "#dealerPanelBody",
+    panelBack: "#dealerPanelBack",
+    panelCrumb: "#dealerPanelCrumb",
+    panelClose: "#dealerPanelClose"
+  }, window.GaleonDealersConfig);
+
+  function dom(key) {
+    return document.querySelector(CONFIG[key]);
+  }
+
+  function dealerMapEl() {
+    const body = dom("panelBody");
+    return body && body.querySelector(".dealer-detail__map.is-live");
+  }
+
   function initScrollVideo() {
     const isMobile = window.innerWidth < 992;
 
@@ -6,14 +36,14 @@
       gsap.registerPlugin(ScrollTrigger);
     }
 
-    const canvas = document.getElementById("gdVideoCanvas");
+    const canvas = dom("canvas");
     const ctx = canvas.getContext("2d");
     const videoSrc = canvas.getAttribute("data-video-src");
     const videoSrc2 = canvas.getAttribute("data-video-src-2");
-    const endButton = document.getElementById("endButton");
-    const endCta = document.getElementById("endCta");
-    const backButton = document.getElementById("backToGlobe");
-    const mapToolbar = document.getElementById("mapToolbar");
+    const endButton = dom("endButton");
+    const endCta = dom("endCta");
+    const backButton = dom("closeMap");
+    const mapToolbar = dom("mapToolbar");
 
 
     let timeline;
@@ -30,7 +60,7 @@
     const SECOND_VIDEO_TIMEOUT = 8000;
     const endDim = document.createElement("div");
     endDim.className = "gd-canvas_dim";
-    const shadeEl = document.getElementById("scrollShade");
+    const shadeEl = dom("shade");
     if (shadeEl) shadeEl.after(endDim);
     function setEndDim(videoProgress) {
       endDim.style.opacity = Math.min(1, Math.max(0, (videoProgress - DIM_FROM) / (0.98 - DIM_FROM)));
@@ -81,7 +111,7 @@
         shown = k;
       }
 
-      const track = document.querySelector(".gd-track");
+      const track = dom("track");
       if (track && "IntersectionObserver" in window) {
         const io = new IntersectionObserver((entries) => {
           if (skipFrames) return;
@@ -144,7 +174,7 @@
 
       timeline = gsap.timeline({
         scrollTrigger: {
-          trigger: ".gd-track",
+          trigger: CONFIG.track,
           start: "top top",
           end: "bottom bottom",
           scrub: true,
@@ -194,7 +224,7 @@
     }
 
     function trackOnScreen() {
-      const t = document.querySelector(".gd-track");
+      const t = dom("track");
       if (!t || !window.innerHeight) return false;
       const r = t.getBoundingClientRect();
       return r.top < window.innerHeight && r.bottom > 0;
@@ -265,7 +295,7 @@
         window.GlobeMap.show(function (el) {
           setLoader(false);
           finalImage = el;
-          const shade = document.getElementById("scrollShade");
+          const shade = dom("shade");
           if (shade) shade.classList.add("is-hidden");
           setToolbar(true);
           openPendingDealer();
@@ -285,7 +315,7 @@
     }
 
     function setLoader(on) {
-      const loader = document.getElementById("globeLoader");
+      const loader = dom("loader");
       if (loader) loader.classList.toggle("is-visible", on);
     }
 
@@ -305,14 +335,14 @@
 
     function showPhotoMap() {
       const imgSrc = canvas.getAttribute("data-final-image");
-      const mapImage = document.getElementById("mapImage");
+      const mapImage = dom("mapImage");
       if (!imgSrc || !mapImage) return;
 
       mapImage.onload = () => {
         finalImage = mapImage;
         mapImage.classList.add("is-visible");
 
-        const shade = document.getElementById("scrollShade");
+        const shade = dom("shade");
         if (shade) shade.classList.add("is-hidden");
 
         MapPins.mount(mapImage);
@@ -327,7 +357,7 @@
       playingSecond = true;
       toggleEndButton(false);
       if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
-      const track = document.querySelector(".gd-track");
+      const track = dom("track");
       if (track) {
         const top = track.getBoundingClientRect().top + window.scrollY + track.offsetHeight - window.innerHeight;
         window.scrollTo(0, Math.max(0, top));
@@ -345,8 +375,8 @@
     }
 
     function resetToGlobe() {
-      const mapImage = document.getElementById("mapImage");
-      const shade = document.getElementById("scrollShade");
+      const mapImage = dom("mapImage");
+      const shade = dom("shade");
 
       closeDealerPanel();
       MapPins.unmount();
@@ -366,7 +396,7 @@
       }
 
       resetting = true;
-      const track = document.querySelector(".gd-track");
+      const track = dom("track");
       const top = track ? track.getBoundingClientRect().top + window.scrollY : window.scrollY;
       window.scrollTo({ top: top, behavior: "smooth" });
 
@@ -425,7 +455,7 @@
     let img = null;
 
     function mount(mapImage) {
-      layer = document.getElementById("mapPins");
+      layer = dom("mapPins");
       img = mapImage;
       if (!layer || !Array.isArray(window.DEALERS)) return;
 
@@ -593,7 +623,7 @@
       if (mbMap) mbMap.remove();
       if (mbEl && mbEl.parentNode) mbEl.parentNode.removeChild(mbEl);
       mbMap = mbEl = mbMarker = null;
-      const el = document.getElementById("dealerMap");
+      const el = dealerMapEl();
       if (el && current) mount(el, current.lat, current.lng, current.label);
     }
 
@@ -821,7 +851,7 @@
 
   function renderDealerView(cont, country, index) {
     const d = country.dealers[index];
-    const mapSrc = document.getElementById("gdVideoCanvas").getAttribute("data-final-image");
+    const mapSrc = dom("canvas").getAttribute("data-final-image");
     const hasCoords = typeof d.lat === "number" && typeof d.lng === "number";
     const rows = [];
 
@@ -853,7 +883,7 @@
       (links.length ? '<div class="dealer-detail__links">' + links.join("") + "</div>" : "") +
 
       (hasCoords
-        ? '<div id="dealerMap" class="dealer-detail__map is-live is-loading"></div>'
+        ? '<div class="dealer-detail__map is-live is-loading"></div>'
         : '<div class="dealer-detail__map" style="background-image:url(&quot;' + dealerEscape(mapSrc) +
           '&quot;);background-position:' + cont.pos.x + "% " + cont.pos.y + '%">' +
           '<span class="dealer-detail__crosshair"></span>' +
@@ -871,9 +901,9 @@
   }
 
   function renderDealerPanel() {
-    const body = document.getElementById("dealerPanelBody");
-    const back = document.getElementById("dealerPanelBack");
-    const crumb = document.getElementById("dealerPanelCrumb");
+    const body = dom("panelBody");
+    const back = dom("panelBack");
+    const crumb = dom("panelCrumb");
     if (!body || !Array.isArray(window.DEALERS)) return;
 
     const cont = DealerNav.continentId ? findContinent(DealerNav.continentId) : null;
@@ -888,7 +918,7 @@
       back.hidden = false;
       back.setAttribute("aria-label", "Back to " + country.name);
       if (dealer && typeof dealer.lat === "number" && typeof dealer.lng === "number") {
-        DealerMap.mount(document.getElementById("dealerMap"), dealer.lat, dealer.lng, dealer.name);
+        DealerMap.mount(dealerMapEl(), dealer.lat, dealer.lng, dealer.name);
       }
     } else if (DealerNav.view === "country" && cont && country) {
       body.innerHTML = renderCountryView(cont, country);
@@ -934,14 +964,15 @@
   let panelReturnFocus = null;
 
   function focusPanelTitle() {
-    const title = document.querySelector("#dealerPanelBody .dealer-panel__title");
+    const body = dom("panelBody");
+    const title = body && body.querySelector(".dealer-panel__title");
     if (!title) return;
     title.setAttribute("tabindex", "-1");
     title.focus({ preventScroll: true });
   }
 
   function setDealerPanelOpen(open) {
-    const panel = document.getElementById("dealerPanel");
+    const panel = dom("panel");
     if (!panel) return;
     const wasOpen = panel.classList.contains("is-open");
     const hadFocus = panel.contains(document.activeElement);
@@ -975,14 +1006,14 @@
   }
 
   function initDealerPanel() {
-    const closeBtn = document.getElementById("dealerPanelClose");
-    const backBtn = document.getElementById("dealerPanelBack");
-    const body = document.getElementById("dealerPanelBody");
-    const openAll = document.getElementById("openAllDealers");
+    const closeBtn = dom("panelClose");
+    const backBtn = dom("panelBack");
+    const body = dom("panelBody");
+    const openAll = dom("openAll");
 
     setDealerPanelOpen(false);
-    ["endCta", "mapToolbar"].forEach(function (id) {
-      const el = document.getElementById(id);
+    ["endCta", "mapToolbar"].forEach(function (key) {
+      const el = dom(key);
       if (el && !el.classList.contains("is-visible")) el.inert = true;
     });
 
@@ -1013,9 +1044,9 @@
 
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
-      const panel = document.getElementById("dealerPanel");
+      const panel = dom("panel");
       if (!panel || !panel.classList.contains("is-open")) {
-        const chip = document.getElementById("globeBack");
+        const chip = dom("globeBack");
         if (chip && !chip.hidden) dealerGoTo("continents", { continentId: null, countryId: null });
         return;
       }
@@ -1029,7 +1060,8 @@
     countDealers: countDealers,
     goTo: dealerGoTo,
     openPanel: openDealerPanel,
-    setPanelOpen: setDealerPanelOpen
+    setPanelOpen: setDealerPanelOpen,
+    dom: dom
   });
 
   if (document.readyState === "loading") {

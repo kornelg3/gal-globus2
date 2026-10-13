@@ -47,7 +47,7 @@ window.GlobeMap = (function () {
 
   let withPanel = false;
 
-  function panelEl() { return document.getElementById("dealerPanel"); }
+  function panelEl() { return host.dom("panel"); }
   function setPanelOpen(open) {
     host.setPanelOpen(open);
   }
@@ -275,7 +275,7 @@ window.GlobeMap = (function () {
     } else {
       withPanel = !!contId;
     }
-    const chip = document.getElementById("globeBack");
+    const chip = host.dom("globeBack");
     if (chip) chip.hidden = !(isMobile() && nav && nav.view === "continent");
 
     markers.forEach(function (m) {
@@ -370,7 +370,7 @@ window.GlobeMap = (function () {
 
   function prepare() {
     if (ready) return ready;
-    const el = document.getElementById("globeMap");
+    const el = host.dom("globeMap");
     if (!el) return Promise.reject();
     ready = loadLib().then(function () {
       return new Promise(function (resolve, reject) {
@@ -384,7 +384,7 @@ window.GlobeMap = (function () {
           attributionControl: true
         });
         map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-        const chip = document.getElementById("globeBack");
+        const chip = host.dom("globeBack");
         if (chip) chip.addEventListener("click", function () {
           host.goTo("continents", { continentId: null, countryId: null });
         });
@@ -418,7 +418,7 @@ window.GlobeMap = (function () {
 
   let shownOnce = false;
   function show(onReady, onFail) {
-    const el = document.getElementById("globeMap");
+    const el = host.dom("globeMap");
     if (!el) {
       if (onFail) onFail();
       return;
@@ -453,7 +453,7 @@ window.GlobeMap = (function () {
   }
 
   function hide() {
-    const el = document.getElementById("globeMap");
+    const el = host.dom("globeMap");
     if (el) el.classList.remove("is-visible");
   }
 
