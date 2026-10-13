@@ -416,7 +416,7 @@
     }
   }
 
-  .canvas_wrapper .globe-map {
+  .gd-canvas_wrapper .globe-map {
     position: absolute;
     inset: 0;
     z-index: 1;
@@ -605,10 +605,10 @@
     </div>
   </section>
 
-  <div class="track">
-    <div class="canvas_wrapper">
-      <canvas id="videoCanvas" class="canvas" video-src="../wideo-scroll.mp4" video-src-2="../globe-2-vid.mp4" final-image="../map-with-pins.jpg" frames-src-mobile="../globe-m/" frames-count-mobile="169"></canvas>
-      <div id="scrollShade" class="canvas_shade"></div>
+  <div class="gd-track">
+    <div class="gd-canvas_wrapper">
+      <canvas id="gdVideoCanvas" class="gd-canvas" data-video-src="../wideo-scroll.mp4" data-video-src-2="../globe-2-vid.mp4" data-final-image="../map-with-pins.jpg" data-frames-src-mobile="../globe-m/" data-frames-count-mobile="169"></canvas>
+      <div id="scrollShade" class="gd-canvas_shade"></div>
       <img id="mapImage" class="map-image" src="" alt="" aria-hidden="true" />
 
       <div id="globeMap" class="globe-map"></div>
@@ -621,7 +621,7 @@
 
       <div id="mapPins" class="map-pins"></div>
 
-      <div class="canvas_gradient"></div>
+      <div class="gd-canvas_gradient"></div>
 
       <div id="endCta" class="end-cta">
         <h2 class="end-cta__heading">Choose The Closest Dealer From Our Distribution Network</h2>

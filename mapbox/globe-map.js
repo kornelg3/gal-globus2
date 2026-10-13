@@ -46,7 +46,7 @@ window.GlobeMap = (function () {
 
   function panelEl() { return document.getElementById("dealerPanel"); }
   function setPanelOpen(open) {
-    setDealerPanelOpen(open);
+    window.GaleonDealers.setPanelOpen(open);
   }
 
   const MAX_ZOOM = 8;
@@ -96,12 +96,12 @@ window.GlobeMap = (function () {
   function pinElement(cls, name, n) {
     const wrap = document.createElement("div");
     wrap.className = "globe-pin";
-    const label = n === null ? dealerEscape(name)
-      : dealerEscape(name) + ", " + n + (n === 1 ? " location" : " locations");
+    const label = n === null ? window.GaleonDealers.escape(name)
+      : window.GaleonDealers.escape(name) + ", " + n + (n === 1 ? " location" : " locations");
     wrap.innerHTML =
       '<button class="map-pin ' + cls + '" type="button" aria-label="' + label + '">' +
       '<span class="map-pin__dot"></span>' +
-      '<span class="map-pin__label">' + dealerEscape(name) +
+      '<span class="map-pin__label">' + window.GaleonDealers.escape(name) +
       (n === null ? "" : '<span class="map-pin__count">' + n + "</span>") + "</span>" +
       "</button>";
     return wrap;
@@ -111,10 +111,10 @@ window.GlobeMap = (function () {
     (window.DEALERS || []).forEach(function (cont) {
       const ll = CONTINENT_LNGLAT[cont.id];
       if (ll) {
-        const el = pinElement("map-pin--continent", cont.name, countDealers(cont));
+        const el = pinElement("map-pin--continent", cont.name, window.GaleonDealers.countDealers(cont));
         el.addEventListener("click", function () {
-          if (isMobile()) dealerGoTo("continent", { continentId: cont.id, countryId: null });
-          else openDealerPanel(cont.id);
+          if (isMobile()) window.GaleonDealers.goTo("continent", { continentId: cont.id, countryId: null });
+          else window.GaleonDealers.openPanel(cont.id);
         });
         markers.push({ kind: "continent", continentId: cont.id, el: el,
           marker: new window.mapboxgl.Marker({ element: el }).setLngLat(ll).addTo(map) });
@@ -125,12 +125,12 @@ window.GlobeMap = (function () {
         el.style.display = "none";
         el.addEventListener("click", function () {
           if (isMobile()) {
-            dealerGoTo("country", { continentId: cont.id, countryId: c.id });
+            window.GaleonDealers.goTo("country", { continentId: cont.id, countryId: c.id });
             setPanelOpen(true);
             return;
           }
-          openDealerPanel(cont.id);
-          dealerGoTo("country", { countryId: c.id });
+          window.GaleonDealers.openPanel(cont.id);
+          window.GaleonDealers.goTo("country", { countryId: c.id });
         });
         markers.push({ kind: "country", continentId: cont.id, countryId: c.id, el: el,
           marker: new window.mapboxgl.Marker({ element: el }).setLngLat([c.lng, c.lat]).addTo(map) });
@@ -140,7 +140,7 @@ window.GlobeMap = (function () {
           const del = pinElement("map-pin--dealer", d.name, null);
           del.style.display = "none";
           del.addEventListener("click", function () {
-            dealerGoTo("dealer", { continentId: cont.id, countryId: c.id, dealerIndex: i });
+            window.GaleonDealers.goTo("dealer", { continentId: cont.id, countryId: c.id, dealerIndex: i });
           });
           markers.push({ kind: "dealer", continentId: cont.id, countryId: c.id, index: i, el: del,
             marker: new window.mapboxgl.Marker({ element: del }).setLngLat([d.lng, d.lat]).addTo(map) });
@@ -383,7 +383,7 @@ window.GlobeMap = (function () {
         map.addControl(new window.mapboxgl.NavigationControl({ showCompass: false }), "top-right");
         const chip = document.getElementById("globeBack");
         if (chip) chip.addEventListener("click", function () {
-          dealerGoTo("continents", { continentId: null, countryId: null });
+          window.GaleonDealers.goTo("continents", { continentId: null, countryId: null });
         });
         map.on("click", pickNearestPin);
 
