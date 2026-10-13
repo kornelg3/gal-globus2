@@ -1,17 +1,9 @@
 
 :root {
-  --bg-white: #fbfbfb;
-  --bg-dark:  #122938;
-  --pin:      #2f7fb5;
-  --ease:     cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-* { box-sizing: border-box; }
-
-html, body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--bg-white);
+  --gd-bg-white: #fbfbfb;
+  --gd-bg-dark:  #122938;
+  --gd-pin:      #2f7fb5;
+  --gd-ease:     cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .gd-track {
@@ -19,7 +11,7 @@ html, body {
   height: 400vh;
   margin-left: auto;
   margin-right: auto;
-  background-color: var(--bg-white);
+  background-color: var(--gd-bg-white);
   z-index: 1;
 }
 
@@ -93,11 +85,10 @@ html, body {
   inset: auto 0 0;
   width: 100%;
   height: 8rem;
-  background-image: linear-gradient(0deg, var(--bg-dark), #182e3900);
+  background-image: linear-gradient(0deg, var(--gd-bg-dark), #182e3900);
   z-index: 2;
   pointer-events: none;
 }
-
 
 .map-pins {
   position: absolute;
@@ -120,7 +111,7 @@ html, body {
   cursor: pointer;
   pointer-events: auto;
   font-family: "Galanogrotesque", "Helvetica Neue", Arial, sans-serif;
-  animation: pinIn 0.5s var(--ease) both;
+  animation: pinIn 0.5s var(--gd-ease) both;
 }
 
 @keyframes pinIn {
@@ -134,9 +125,9 @@ html, body {
   height: 0.85rem;
   flex-shrink: 0;
   border-radius: 50%;
-  background: var(--pin);
+  background: var(--gd-pin);
   box-shadow: 0 0 0 0.2rem rgba(47, 127, 181, 0.35);
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  transition: transform 0.3s var(--gd-ease), box-shadow 0.3s var(--gd-ease);
 }
 .map-pin__dot::after {
   content: "";
@@ -167,14 +158,14 @@ html, body {
   text-transform: uppercase;
   opacity: 0;
   transform: translateX(-0.35rem);
-  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+  transition: opacity 0.3s var(--gd-ease), transform 0.3s var(--gd-ease);
 }
 .map-pin__count {
   display: inline-block;
   min-width: 1.3rem;
   padding: 0 0.35rem;
   border-radius: 999px;
-  background: var(--pin);
+  background: var(--gd-pin);
   text-align: center;
   font-size: 0.68rem;
   letter-spacing: 0;
@@ -197,7 +188,7 @@ html, body {
   gap: 0.75rem;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.6s var(--ease), transform 0.6s var(--ease);
+  transition: opacity 0.6s var(--gd-ease), transform 0.6s var(--gd-ease);
 }
 .map-toolbar.is-visible {
   opacity: 1;
@@ -220,7 +211,7 @@ html, body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.3s ease, color 0.3s ease, transform 0.3s var(--ease);
+  transition: background 0.3s ease, color 0.3s ease, transform 0.3s var(--gd-ease);
 }
 .map-btn:hover { transform: translateY(-2px); }
 
@@ -244,12 +235,12 @@ html, body {
   width: 30rem;
   max-width: 92vw;
   height: 100vh;
-  background: var(--bg-dark);
+  background: var(--gd-bg-dark);
   color: rgba(255, 255, 255, 0.92);
   box-shadow: -1.5rem 0 3rem -1rem rgba(0, 0, 0, 0.45);
   font-family: "Galanogrotesque", "Helvetica Neue", Arial, sans-serif;
   transform: translateX(100%);
-  transition: transform 0.55s var(--ease);
+  transition: transform 0.55s var(--gd-ease);
   display: flex;
   flex-direction: column;
 }
@@ -364,7 +355,7 @@ html, body {
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition: padding-left 0.3s var(--ease), background 0.3s ease;
+  transition: padding-left 0.3s var(--gd-ease), background 0.3s ease;
 }
 .dealer-row:hover {
   background: rgba(255, 255, 255, 0.04);
@@ -400,7 +391,7 @@ html, body {
 .dealer-row__arrow {
   flex-shrink: 0;
   color: rgba(255, 255, 255, 0.35);
-  transition: transform 0.3s var(--ease), color 0.3s ease;
+  transition: transform 0.3s var(--gd-ease), color 0.3s ease;
 }
 .dealer-row:hover .dealer-row__arrow { transform: translateX(0.3rem); color: #fff; }
 
@@ -450,7 +441,7 @@ html, body {
   width: 1.1rem;
   height: 1.1rem;
   border-radius: 50%;
-  background: var(--pin);
+  background: var(--gd-pin);
   border: 2px solid #fff;
   box-shadow: 0 0 0 0.3rem rgba(47, 127, 181, 0.35);
 }
@@ -475,7 +466,7 @@ html, body {
   height: 1rem;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: var(--pin);
+  background: var(--gd-pin);
   box-shadow: 0 0 0 0.35rem rgba(47, 127, 181, 0.35);
 }
 
@@ -541,3 +532,40 @@ button.dealer-detail__link {
 @media (prefers-reduced-motion: reduce) {
   .map-pin, .map-pin__dot::after { animation: none; }
 }
+
+.end-cta {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.96);
+  z-index: 20;
+  width: min(34rem, 86vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.4rem;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s var(--gd-ease), transform 0.6s var(--gd-ease);
+}
+
+.end-cta.is-visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  pointer-events: auto;
+}
+
+.end-cta__heading {
+  margin: 0;
+  font-family: Galanogrotesque, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 500;
+  font-size: clamp(1.15rem, 0.95rem + 0.7vw, 1.45rem);
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+  text-shadow: 0 0.125rem 1.5rem rgba(0, 0, 0, 0.55);
+}
+
+.end-cta .map-btn { transition: background 0.3s ease, color 0.3s ease, transform 0.3s var(--gd-ease); }
+.end-cta .map-btn:hover { transform: translateY(-2px); }
