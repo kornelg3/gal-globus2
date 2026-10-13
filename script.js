@@ -43,6 +43,7 @@ function initScrollVideo() {
   // Zaciemnienie końcówki pierwszego wideo — narasta od DIM_FROM
   // do momentu pojawienia się buttona (0,98 postępu wideo).
   const DIM_FROM = 0.8;
+  const SECOND_VIDEO_TIMEOUT = 8000;
   const endDim = document.createElement("div");
   endDim.className = "canvas_dim";
   const shadeEl = document.getElementById("scrollShade");
@@ -322,13 +323,22 @@ function initScrollVideo() {
     if (v2.readyState >= 1) start();
     else v2.addEventListener("loadedmetadata", start, { once: true });
 
-    // Koniec: zatrzymujemy pętlę i podmieniamy ostatnią klatkę na obrazek.
-    v2.addEventListener("ended", function onEnded() {
-      v2.removeEventListener("ended", onEnded);
+    const stall = setTimeout(function () {
+      if (v2.readyState < 2) finish();
+    }, SECOND_VIDEO_TIMEOUT);
+
+    function finish() {
+      clearTimeout(stall);
+      v2.removeEventListener("ended", finish);
+      v2.removeEventListener("error", finish);
+      v2.removeEventListener("loadedmetadata", start);
       cancelAnimationFrame(rafId);
-      drawFrame(v2);   // tymczasowo: ostatnia klatka, zanim wczyta się JPG
+      v2.pause();
+      drawFrame(v2);
       showFinalImage();
-    });
+    }
+    v2.addEventListener("ended", finish);
+    v2.addEventListener("error", finish);
   }
 
   /* ----------------------------------------------------------
@@ -368,12 +378,13 @@ function initScrollVideo() {
   }
 
   function onFindDealer() {
-    if (window.GLOBE_FLY && window.GlobeMap && window.GlobeMap.enabled()) {
-      if (playingSecond) return;
+    if (playingSecond) return;
+    const fly = window.GLOBE_FLY && window.GlobeMap && window.GlobeMap.enabled();
+    if (fly || !videoSrc2) {
       playingSecond = true;
       toggleEndButton(false);
       endDim.classList.add("is-out");
-      setLoader(true);
+      if (fly) setLoader(true);
       showFinalImage();
       return;
     }
@@ -1137,6 +1148,8 @@ function closeDealerPanel() {
   DealerMap.destroy();
   panel.classList.remove("is-open");
   panel.setAttribute("aria-hidden", "true");
+  DealerNav.view = "continents";
+  DealerNav.continentId = DealerNav.countryId = DealerNav.dealerIndex = null;
   setDealerUrl("");
   if (window.GlobeMap && window.GlobeMap.sync) window.GlobeMap.sync(null);
 }
@@ -1179,6 +1192,12 @@ function initDealerPanel() {
   // Esc: cofa o poziom, a z listy kontynentów zamyka panel.
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
+    const panel = document.getElementById("dealerPanel");
+    if (!panel || !panel.classList.contains("is-open")) {
+      const chip = document.getElementById("globeBack");
+      if (chip && !chip.hidden) dealerGoTo("continents", { continentId: null, countryId: null });
+      return;
+    }
     if (DealerNav.view === "continents") closeDealerPanel();
     else dealerGoBack();
   });

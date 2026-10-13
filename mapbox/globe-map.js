@@ -512,7 +512,10 @@ window.GlobeMap = (function () {
   let shownOnce = false;
   function show(onReady, onFail) {
     const el = document.getElementById("globeMap");
-    if (!el) return;
+    if (!el) {
+      if (onFail) onFail();
+      return;
+    }
     // Mapa nie przyszla na czas albo blad — zdjecie zamiast stania na
     // ostatniej klatce animacji. Spozniona mapa juz sie nie pokazuje.
     let settled = false;
