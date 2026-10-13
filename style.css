@@ -73,6 +73,22 @@ html, body {
 }
 .canvas_shade.is-hidden { opacity: 0; }
 
+/* .canvas_dim — lekkie zaciemnienie końcówki pierwszego wideo (zanim
+   pojawi się button). Krycie ustawia JS ze scrolla; po kliknięciu
+   gaśnie płynnie, bo druga animacja startuje z ciemnego kadru. */
+.canvas_dim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(3, 5, 12, 0.45);
+  opacity: 0;
+}
+.canvas_dim.is-out {
+  opacity: 0 !important;
+  transition: opacity 0.8s ease;
+}
+
 /* .map-image — obrazek mapy z pinami nakładany na canvas po 2. animacji. */
 .map-image {
   position: absolute;
@@ -306,14 +322,15 @@ html, body {
 .dealer-panel__back:hover { background: rgba(255, 255, 255, 0.1); }
 .dealer-panel__back[hidden] { display: none; }
 
+/* Okruszek lamie sie na kolejne linie zamiast wchodzic pod X;
+   lamanie tylko przy separatorach "›" (spacje w nazwach sa nierozdzielne). */
 .dealer-panel__crumb {
   flex: 1;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+  font-size: 0.62rem;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.78);
 }

@@ -40,6 +40,17 @@ function initScrollVideo() {
   let pendingDealer = sharedDealerFromUrl();
   let skipFrames = !!pendingDealer;
 
+  // Zaciemnienie końcówki pierwszego wideo — narasta od DIM_FROM
+  // do momentu pojawienia się buttona (0,98 postępu wideo).
+  const DIM_FROM = 0.8;
+  const endDim = document.createElement("div");
+  endDim.className = "canvas_dim";
+  const shadeEl = document.getElementById("scrollShade");
+  if (shadeEl) shadeEl.after(endDim);
+  function setEndDim(videoProgress) {
+    endDim.style.opacity = Math.min(1, Math.max(0, (videoProgress - DIM_FROM) / (0.98 - DIM_FROM)));
+  }
+
   // --- Niewidzialny element <video> jako źródło klatek (desktop) ---
   // NIE wstawiamy go do DOM. Służy tylko do dekodowania klatek,
   // które potem rysujemy na <canvas>. Na mobile go nie tworzymy,
@@ -207,6 +218,8 @@ function initScrollVideo() {
 
           const videoProgress = Math.min(self.progress / (1 - HOLD_END), 1);
 
+          setEndDim(videoProgress);
+
           // Button pokazujemy, gdy wideo praktycznie się skończyło.
           toggleEndButton(videoProgress >= 0.98);
 
@@ -282,6 +295,7 @@ function initScrollVideo() {
     if (playingSecond || !videoSrc2) return;
     playingSecond = true;
     toggleEndButton(false);
+    endDim.classList.add("is-out"); // druga animacja startuje z ciemnego kadru
     prefetchSecondVideo();          // gdyby button kliknięto, zanim zdążył
     const v2 = video2;
     v2.currentTime = 0;
@@ -358,6 +372,7 @@ function initScrollVideo() {
       if (playingSecond) return;
       playingSecond = true;
       toggleEndButton(false);
+      endDim.classList.add("is-out");
       setLoader(true);
       showFinalImage();
       return;
@@ -434,6 +449,8 @@ function initScrollVideo() {
     finalImage = null;
     playingSecond = false;
     pendingDealer = null;
+    endDim.classList.remove("is-out");
+    setEndDim(0);
     if (skipFrames) {        // po wejściu z linku klatki mobilne dopiero teraz
       skipFrames = false;
       if (MobileFrames) MobileFrames.loadAll();
@@ -1034,6 +1051,11 @@ function renderDealerView(cont, country, index) {
   );
 }
 
+// Okruszek: spacje w nazwach nierozdzielne — linia łamie się tylko między poziomami.
+function crumbText(parts) {
+  return parts.map(function (p) { return String(p).replace(/ /g, " "); }).join(" › ");
+}
+
 /* ----------------------------------------------------------
    renderDealerPanel() — rysuje aktualny widok wg DealerNav.
    ---------------------------------------------------------- */
@@ -1052,7 +1074,7 @@ function renderDealerPanel() {
   if (DealerNav.view === "dealer" && cont && country) {
     const dealer = country.dealers[DealerNav.dealerIndex];
     body.innerHTML = renderDealerView(cont, country, DealerNav.dealerIndex);
-    crumb.textContent = "All locations › " + cont.name + " › " + country.name;
+    crumb.textContent = crumbText(["All locations", cont.name, country.name]);
     back.hidden = false;
     back.setAttribute("aria-label", "Back to " + country.name);
     if (dealer && typeof dealer.lat === "number" && typeof dealer.lng === "number") {
@@ -1060,12 +1082,12 @@ function renderDealerPanel() {
     }
   } else if (DealerNav.view === "country" && cont && country) {
     body.innerHTML = renderCountryView(cont, country);
-    crumb.textContent = "All locations › " + cont.name;
+    crumb.textContent = crumbText(["All locations", cont.name]);
     back.hidden = false;
     back.setAttribute("aria-label", "Back to " + cont.name);
   } else if (DealerNav.view === "continent" && cont) {
     body.innerHTML = renderContinentView(cont);
-    crumb.textContent = "All locations";
+    crumb.textContent = crumbText(["All locations"]);
     back.hidden = false;
     back.setAttribute("aria-label", "Back to all locations");
   } else {

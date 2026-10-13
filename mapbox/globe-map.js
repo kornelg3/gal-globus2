@@ -46,8 +46,10 @@ window.GlobeMap = (function () {
      pinezki krajow — lista nie zaslania mapy. */
   const mobileMQ = window.matchMedia("(max-width: 860px)");
   function isMobile() { return mobileMQ.matches; }
+  // Kadr Europy — tu konczy sie druga animacja, wiec mapa wchodzi w nim.
+  function europeStart() { return isMobile() ? START_MOBILE : START; }
   function start() {
-    const base = isMobile() ? START_MOBILE : START;
+    const base = europeStart();
     const cont = continentFromTimezone();
     const ll = cont && cont !== "europe" ? CONTINENT_LNGLAT[cont] : null;
     return ll ? { center: ll, zoom: base.zoom } : base;
@@ -440,6 +442,22 @@ window.GlobeMap = (function () {
     }));
   }
 
+  /* Po drugiej animacji mapa wchodzi w kadrze Europy (ostatnia klatka
+     filmu), a po krotkiej pauzie kamera przelatuje na kontynent ze
+     strefy czasowej — przy tym samym przyblizeniu. Uzytkownik z Europy
+     nie widzi ruchu. Przelot odpada, gdy w pauzie cos juz wybrano
+     (klik, link ?dealer=...) albo uzytkownik sam ruszyl mape. */
+  const HOME_PAUSE = 500;
+  const HOME_FLY_MS = 2000;
+  function flyToUser() {
+    const target = start();
+    if (target === europeStart()) return;
+    setTimeout(function () {
+      if (!map || (shownKey && shownKey !== "||") || map.isMoving()) return;
+      map.flyTo(Object.assign({}, target, { padding: padding(false), duration: HOME_FLY_MS }));
+    }, HOME_PAUSE);
+  }
+
   function prepare() {
     if (ready) return ready;
     const el = document.getElementById("globeMap");
@@ -447,7 +465,7 @@ window.GlobeMap = (function () {
     ready = loadLib().then(function () {
       return new Promise(function (resolve, reject) {
         window.mapboxgl.accessToken = token;
-        const cam = FLY ? flyFrom() : start();
+        const cam = FLY ? flyFrom() : europeStart();
         map = new window.mapboxgl.Map({
           container: el,
           style: STYLE,
@@ -511,13 +529,14 @@ window.GlobeMap = (function () {
       settled = true;
       if (shownOnce) {       // drugi raz po "Close map" — mapa juz jest
         sync(null);
-        map.jumpTo(start());
+        map.jumpTo(FLY ? start() : europeStart());
       }
       map.resize();          // kontener mogl zmienic rozmiar, gdy mapa byla ukryta
       if (FLY) flyIn();
       shownOnce = true;
       el.classList.add("is-visible");
       onReady(el);
+      if (!FLY) flyToUser();
     }).catch(function () {
       clearTimeout(timer);
       fail();
